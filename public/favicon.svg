@@ -3,22 +3,22 @@
     <g id="cube-gap">
       <polygon
         points="0.5,0.5 7.5,0.5 11,-2 4,-2"
-        fill="#ebe6de"
-        stroke="#0c0b0a"
+        fill="#ffffff"
+        stroke="#050505"
         stroke-width="0.5"
         stroke-linejoin="round"
       />
       <polygon
         points="0.5,0.5 7.5,0.5 7.5,7.5 0.5,7.5"
-        fill="#8c867d"
-        stroke="#0c0b0a"
+        fill="#f3f3f0"
+        stroke="#050505"
         stroke-width="0.5"
         stroke-linejoin="round"
       />
       <polygon
         points="7.5,0.5 11,-2 11,5 7.5,7.5"
-        fill="#423e39"
-        stroke="#0c0b0a"
+        fill="#d8d8d2"
+        stroke="#050505"
         stroke-width="0.5"
         stroke-linejoin="round"
       />
