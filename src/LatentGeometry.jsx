@@ -66,6 +66,19 @@ const distanceToSegment = (point, segment) => {
   return Math.hypot(point.x - x, point.y - y);
 };
 
+const darknessAt = (point, width, height) => {
+  const centerX = width * 0.61;
+  const centerY = height * 0.46;
+  const centerDistance = Math.hypot((point.x - centerX) / width, (point.y - centerY) / height);
+  const centerLight = Math.max(0, 1 - centerDistance / 0.52);
+  const edgeShade = Math.max(
+    Math.abs(point.x / width - 0.5) * 1.55,
+    Math.abs(point.y / height - 0.5) * 1.15,
+  );
+
+  return Math.max(0, Math.min(1, 0.22 + edgeShade * 0.72 - centerLight * 0.38));
+};
+
 const buildCells = (width, height, random) => {
   const margin = Math.max(180, Math.min(width, height) * 0.2);
   const spacing = Math.max(124, Math.min(260, Math.sqrt((width * height) / 60)));
@@ -147,6 +160,10 @@ const buildSegments = (width, height) => {
       segments.push({
         a,
         b,
+        midpoint: {
+          x: (a.x + b.x) / 2,
+          y: (a.y + b.y) / 2,
+        },
         phase: random() * Math.PI * 2,
         base: 0.012 + random() * 0.017 + screenBias * 0.015,
       });
@@ -162,7 +179,6 @@ function LatentGeometry() {
   useEffect(() => {
     const canvas = canvasRef.current;
     const context = canvas.getContext("2d", { alpha: true });
-    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     const hoverQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
     const pointer = { x: 0, y: 0, targetX: 0, targetY: 0, active: false, energy: 0 };
     let frame = 0;
@@ -180,36 +196,33 @@ function LatentGeometry() {
       canvas.height = Math.floor(height * pixelRatio);
       context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
       segments = buildSegments(width, height);
-
-      if (motionQuery.matches) {
-        draw();
-      }
     };
 
     const draw = (time = 0) => {
-      const reducedMotion = motionQuery.matches;
       const canHover = hoverQuery.matches;
-      const interactionRadius = Math.max(150, Math.min(width, height) * 0.24);
+      const interactionRadius = Math.max(190, Math.min(width, height) * 0.34);
 
       context.clearRect(0, 0, width, height);
       context.lineCap = "round";
       context.lineJoin = "round";
 
-      if (pointer.active && !reducedMotion) {
-        pointer.x += (pointer.targetX - pointer.x) * 0.085;
-        pointer.y += (pointer.targetY - pointer.y) * 0.085;
+      if (pointer.active) {
+        pointer.x += (pointer.targetX - pointer.x) * 0.078;
+        pointer.y += (pointer.targetY - pointer.y) * 0.078;
       }
 
-      pointer.energy = reducedMotion
-        ? Number(pointer.active)
-        : pointer.energy + (Number(pointer.active) - pointer.energy) * 0.06;
+      pointer.energy += (Number(pointer.active) - pointer.energy) * 0.055;
 
       segments.forEach((segment) => {
-        const idle = reducedMotion ? 0.45 : 0.55 + Math.sin(time * 0.00034 + segment.phase) * 0.45;
+        const darkness = darknessAt(segment.midpoint, width, height);
+        const idle = 0.5 + Math.sin(time * 0.00042 + segment.phase) * 0.5;
+        const deepPulse = 0.5 + Math.sin(time * 0.00018 + segment.phase * 0.7) * 0.5;
         const distance = canHover && pointer.energy > 0.001 ? distanceToSegment(pointer, segment) : Infinity;
         const proximity = Math.max(0, 1 - distance / interactionRadius);
         const activation = proximity * proximity * pointer.energy;
-        const baseAlpha = segment.base * (0.82 + idle * 0.22);
+        const baseAlpha = segment.base * (0.76 + idle * 0.34 + darkness * (0.42 + deepPulse * 0.62));
+        const activeAlpha = activation * (0.2 + darkness * 0.78);
+        const activeWidth = 0.78 + activation * (1.2 + darkness * 2.2);
 
         context.beginPath();
         context.moveTo(segment.a.x, segment.a.y);
@@ -222,18 +235,16 @@ function LatentGeometry() {
           context.beginPath();
           context.moveTo(segment.a.x, segment.a.y);
           context.lineTo(segment.b.x, segment.b.y);
-          context.lineWidth = 0.78 + activation * 1.25;
-          context.strokeStyle = `rgba(236, 220, 185, ${activation * 0.16})`;
-          context.shadowColor = "rgba(236, 214, 174, 0.46)";
-          context.shadowBlur = 8 + activation * 18;
+          context.lineWidth = activeWidth;
+          context.strokeStyle = `rgba(242, 225, 190, ${activeAlpha})`;
+          context.shadowColor = `rgba(238, 214, 172, ${0.38 + darkness * 0.42})`;
+          context.shadowBlur = 9 + activation * (18 + darkness * 30);
           context.stroke();
           context.shadowBlur = 0;
         }
       });
 
-      if (!reducedMotion) {
-        frame = window.requestAnimationFrame(draw);
-      }
+      frame = window.requestAnimationFrame(draw);
     };
 
     const move = (event) => {
@@ -245,44 +256,27 @@ function LatentGeometry() {
       pointer.targetX = event.clientX;
       pointer.targetY = event.clientY;
       pointer.active = true;
-
-      if (motionQuery.matches) {
-        draw();
-      }
     };
 
     const leave = () => {
       pointer.active = false;
-
-      if (motionQuery.matches) {
-        draw();
-      }
     };
 
     resize();
     draw();
     window.addEventListener("resize", resize);
-
-    if (hoverQuery.matches) {
-      window.addEventListener("pointermove", move, { passive: true });
-      window.addEventListener("pointerleave", leave);
-    }
-
-    const mediaChange = () => {
-      window.cancelAnimationFrame(frame);
-      draw();
-    };
-
-    motionQuery.addEventListener("change", mediaChange);
-    hoverQuery.addEventListener("change", mediaChange);
+    window.addEventListener("pointermove", move, { passive: true });
+    window.addEventListener("mousemove", move, { passive: true });
+    window.addEventListener("pointerleave", leave);
+    window.addEventListener("mouseleave", leave);
 
     return () => {
       window.cancelAnimationFrame(frame);
       window.removeEventListener("resize", resize);
       window.removeEventListener("pointermove", move);
+      window.removeEventListener("mousemove", move);
       window.removeEventListener("pointerleave", leave);
-      motionQuery.removeEventListener("change", mediaChange);
-      hoverQuery.removeEventListener("change", mediaChange);
+      window.removeEventListener("mouseleave", leave);
     };
   }, []);
 

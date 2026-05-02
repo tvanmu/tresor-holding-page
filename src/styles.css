@@ -110,8 +110,8 @@ body {
   opacity: 0.82;
   mix-blend-mode: screen;
   mask-image:
-    radial-gradient(ellipse at 57% 48%, black 0%, black 36%, rgba(0, 0, 0, 0.72) 52%, transparent 86%),
-    linear-gradient(90deg, rgba(0, 0, 0, 0.18), black 22%, black 78%, rgba(0, 0, 0, 0.22));
+    radial-gradient(ellipse at 57% 48%, black 0%, black 40%, rgba(0, 0, 0, 0.78) 59%, rgba(0, 0, 0, 0.38) 90%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.58), black 19%, black 81%, rgba(0, 0, 0, 0.58));
 }
 
 .light-sweep {
@@ -319,16 +319,5 @@ body {
     left: var(--edge);
     right: auto;
     font-size: 0.76rem;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
   }
 }
