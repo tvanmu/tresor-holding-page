@@ -12,7 +12,7 @@ function App() {
 
       <header className="site-mark">
         <p>Tresor Van Mulders</p>
-        <p>Rotterdam · 2026</p>
+        <p>2026</p>
       </header>
 
       <section className="statue-stage" aria-hidden="true">
