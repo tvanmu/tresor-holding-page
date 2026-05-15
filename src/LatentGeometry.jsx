@@ -166,103 +166,6 @@ const createVertexStore = (tolerance) => {
 
 const edgeKey = (a, b) => (a.id < b.id ? `${a.id}:${b.id}` : `${b.id}:${a.id}`);
 
-const segmentLength = (segment) => Math.hypot(segment.a.x - segment.b.x, segment.a.y - segment.b.y);
-
-const edgeScore = (edge) => segmentLength(edge) + (edge.samples > 1 ? 48 : 0);
-
-const orientation = (a, b, c) => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
-
-const edgesCross = (first, second) => {
-  if (
-    first.a.id === second.a.id ||
-    first.a.id === second.b.id ||
-    first.b.id === second.a.id ||
-    first.b.id === second.b.id
-  ) {
-    return false;
-  }
-
-  const epsilon = 0.001;
-  const firstA = orientation(first.a, first.b, second.a);
-  const firstB = orientation(first.a, first.b, second.b);
-  const secondA = orientation(second.a, second.b, first.a);
-  const secondB = orientation(second.a, second.b, first.b);
-
-  return firstA * firstB < -epsilon && secondA * secondB < -epsilon;
-};
-
-const simplifyEdges = (edges, width, height) => {
-  const minimumLength = clamp(Math.min(width, height) * 0.025, 16, 28);
-  const kept = edges
-    .map((edge, id) => ({ ...edge, id }))
-    .filter((edge) => segmentLength(edge) >= minimumLength);
-  const removed = new Set();
-  let changed = true;
-
-  while (changed) {
-    changed = false;
-    const incident = new Map();
-
-    kept.forEach((edge) => {
-      if (removed.has(edge.id)) {
-        return;
-      }
-
-      [edge.a.id, edge.b.id].forEach((vertexId) => {
-        if (!incident.has(vertexId)) {
-          incident.set(vertexId, []);
-        }
-
-        incident.get(vertexId).push(edge);
-      });
-    });
-
-    incident.forEach((vertexEdges) => {
-      const activeEdges = vertexEdges.filter((edge) => !removed.has(edge.id));
-
-      if (activeEdges.length <= 3) {
-        return;
-      }
-
-      activeEdges
-        .sort((a, b) => edgeScore(a) - edgeScore(b))
-        .slice(0, activeEdges.length - 3)
-        .forEach((edge) => {
-          removed.add(edge.id);
-          changed = true;
-        });
-    });
-  }
-
-  let crossingRemoved = true;
-
-  while (crossingRemoved) {
-    crossingRemoved = false;
-    const active = kept.filter((edge) => !removed.has(edge.id));
-
-    for (let firstIndex = 0; firstIndex < active.length; firstIndex += 1) {
-      for (let secondIndex = firstIndex + 1; secondIndex < active.length; secondIndex += 1) {
-        const first = active[firstIndex];
-        const second = active[secondIndex];
-
-        if (!edgesCross(first, second)) {
-          continue;
-        }
-
-        removed.add(edgeScore(first) <= edgeScore(second) ? first.id : second.id);
-        crossingRemoved = true;
-        break;
-      }
-
-      if (crossingRemoved) {
-        break;
-      }
-    }
-  }
-
-  return kept.filter((edge) => !removed.has(edge.id));
-};
-
 const fallbackRayOriginAt = (width, height) => ({
   x: width * (width <= 820 ? 0.5 : 0.58),
   y: height * (width <= 820 ? 0.62 : 0.57),
@@ -333,8 +236,8 @@ const networkLightAt = (point, origin, time, width, height, reducedMotion) => {
   const speed = clamp(Math.min(width, height) * 0.000072, 0.044, 0.068);
   const cycle = maxDistance + 220;
   const spacing = cycle / 2.45;
-  const head = clamp(Math.min(width, height) * 0.035, 24, 42);
-  const tail = clamp(Math.min(width, height) * 0.22, 120, 210);
+  const head = clamp(Math.min(width, height) * 0.031, 21, 36);
+  const tail = clamp(Math.min(width, height) * 0.18, 96, 176);
   let wave = 0;
 
   for (let index = 0; index < 3; index += 1) {
@@ -345,7 +248,7 @@ const networkLightAt = (point, origin, time, width, height, reducedMotion) => {
       continue;
     }
 
-    const strength = delta < 0 ? 1 + delta / head : Math.pow(1 - delta / tail, 1.8);
+    const strength = delta < 0 ? 1 + delta / head : Math.pow(1 - delta / tail, 2.15);
     wave = Math.max(wave, strength);
   }
 
@@ -382,24 +285,25 @@ const drawNetworkLight = (context, a, b, origin, time, width, height, reducedMot
   );
   const strongest = Math.max(...lights);
 
-  if (strongest <= 0.018) {
+  if (strongest <= 0.022) {
     return;
   }
 
   const gradient = context.createLinearGradient(a.x, a.y, b.x, b.y);
 
   lights.forEach((light, index) => {
-    gradient.addColorStop(stops[index], `rgba(253, 238, 202, ${light * (0.23 + darkness * 0.1)})`);
+    const sharpened = Math.pow(light, 1.22);
+    gradient.addColorStop(stops[index], `rgba(253, 238, 202, ${sharpened * (0.29 + darkness * 0.11)})`);
   });
 
   context.save();
-  context.lineCap = "butt";
+  context.lineCap = "square";
   context.lineJoin = "miter";
   context.shadowBlur = 0;
   context.beginPath();
   context.moveTo(a.x, a.y);
   context.lineTo(b.x, b.y);
-  context.lineWidth = lineWidth + strongest * 0.18;
+  context.lineWidth = lineWidth + strongest * 0.1;
   context.strokeStyle = gradient;
   context.stroke();
   context.restore();
@@ -478,7 +382,7 @@ const buildCells = (width, height, random) => {
 const buildSegments = (width, height) => {
   const random = seedFrom(Math.round(width * 17 + height * 31));
   const cells = buildCells(width, height, random);
-  const vertexStore = createVertexStore(1.8);
+  const vertexStore = createVertexStore(1.2);
   const edges = new Map();
 
   cells.forEach((cell) => {
@@ -505,7 +409,7 @@ const buildSegments = (width, height) => {
       }
 
       const key = edgeKey(start, end);
-      const width = 0.54 + random() * 0.16;
+      const width = 0.62 + random() * 0.17;
       const base = 0.034 + random() * 0.018 + screenBias * 0.018;
       const existing = edges.get(key);
 
@@ -531,7 +435,7 @@ const buildSegments = (width, height) => {
     vertex.drift = buildVertexDrift(vertex);
   });
 
-  return simplifyEdges([...edges.values()], width, height).map((edge) => {
+  return [...edges.values()].map((edge) => {
     const boost = edge.samples > 1 ? 1.34 : 1;
 
     return {
@@ -599,8 +503,8 @@ function LatentGeometry() {
       const interactionRadius = Math.max(190, Math.min(width, height) * 0.36);
 
       context.clearRect(0, 0, width, height);
-      context.lineCap = "round";
-      context.lineJoin = "round";
+      context.lineCap = "square";
+      context.lineJoin = "miter";
 
       if (!reducedMotion && pointer.active) {
         pointer.x += (pointer.targetX - pointer.x) * 0.078;
@@ -636,7 +540,7 @@ function LatentGeometry() {
         const focalAlpha =
           autonomousActivation * autonomousInfluence * (0.036 + darkness * 0.075) +
           cursorActivation * (0.085 + darkness * 0.19);
-        const activeWidth = segment.width + activation * (0.72 + darkness * 0.62);
+        const activeWidth = segment.width + activation * (0.58 + darkness * 0.48);
 
         context.beginPath();
         context.moveTo(a.x, a.y);

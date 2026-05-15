@@ -16,7 +16,7 @@ function App() {
 
       <section className="statue-stage" aria-hidden="true">
         <div className="halo" />
-        <img className="statue" src="/statue.png" alt="" />
+        <img className="statue" src="/weareback.png" alt="" />
         <div className="ground-shadow" />
       </section>
 
