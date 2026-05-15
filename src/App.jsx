@@ -7,7 +7,6 @@ function App() {
       <div className="ambient ambient-left" aria-hidden="true" />
       <div className="ambient ambient-right" aria-hidden="true" />
       <LatentGeometry />
-      <div className="light-sweep" aria-hidden="true" />
       <div className="grain" aria-hidden="true" />
 
       <header className="site-mark">
