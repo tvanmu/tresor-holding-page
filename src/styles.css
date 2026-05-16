@@ -121,7 +121,7 @@ body {
 
 .site-mark {
   position: fixed;
-  top: var(--edge);
+  top: calc(var(--edge) * 0.92);
   right: var(--edge);
   left: var(--edge);
   z-index: 6;
@@ -129,20 +129,41 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  color: rgba(237, 229, 213, 0.82);
-  font-size: clamp(0.83rem, 1.15vw, 1rem);
+  color: rgba(186, 207, 211, 0.7);
+  font-size: clamp(0.74rem, 0.94vw, 0.9rem);
+  font-variant-caps: all-small-caps;
+  font-feature-settings: "smcp";
+  letter-spacing: 0;
   line-height: 1;
 }
 
 .site-mark p,
 .quarry-line {
   margin: 0;
-  text-shadow: 0 0 2rem rgba(235, 225, 205, 0.24);
+  text-shadow:
+    0 0 1.3rem rgba(107, 213, 205, 0.16),
+    0 0 0.08rem rgba(255, 239, 205, 0.28);
+}
+
+.site-mark p:first-child {
+  position: relative;
+  padding-bottom: 0.48rem;
+}
+
+.site-mark p:first-child::after {
+  position: absolute;
+  right: 0.1rem;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  content: "";
+  background: linear-gradient(90deg, rgba(121, 221, 211, 0.54), rgba(231, 207, 143, 0.42), transparent);
+  opacity: 0.72;
 }
 
 .site-mark p:last-child {
   text-align: right;
-  color: rgba(220, 212, 196, 0.66);
+  color: rgba(185, 203, 207, 0.58);
 }
 
 .statue-stage {
