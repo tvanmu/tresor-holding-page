@@ -229,6 +229,121 @@ body {
   line-height: 1;
 }
 
+.loading-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 58% 48%, rgba(113, 217, 204, 0.12), transparent 22rem),
+    radial-gradient(circle at 34% 72%, rgba(230, 199, 126, 0.09), transparent 19rem),
+    linear-gradient(126deg, rgba(2, 5, 6, 0.98), rgba(4, 11, 13, 0.96) 48%, rgba(1, 2, 3, 0.99));
+}
+
+.loading-veil::before,
+.loading-veil::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+}
+
+.loading-veil::before {
+  background:
+    radial-gradient(ellipse at center, transparent 0 36%, rgba(0, 0, 0, 0.38) 74%, rgba(0, 0, 0, 0.78)),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.28), transparent 28%, transparent 72%, rgba(0, 0, 0, 0.34));
+}
+
+.loading-veil::after {
+  background: linear-gradient(112deg, transparent 0 38%, rgba(131, 224, 215, 0.08) 46%, transparent 54% 100%);
+  opacity: 0;
+  transform: translateX(-18%);
+  animation: veilScan 1.4s ease-out 0.16s forwards;
+}
+
+.loading-veil.is-exiting {
+  animation: veilExit 1.18s cubic-bezier(0.66, 0, 0.34, 1) forwards;
+}
+
+.loading-veil__cells {
+  position: absolute;
+  inset: -8%;
+  width: 116%;
+  height: 116%;
+  filter:
+    drop-shadow(0 0 0.2rem rgba(120, 221, 213, 0.24))
+    drop-shadow(0 0 1.25rem rgba(50, 106, 120, 0.28));
+}
+
+.loading-veil__cell {
+  fill: rgba(31, 39, 39, 0.86);
+  stroke: rgba(134, 224, 215, 0.46);
+  stroke-width: 0.16;
+  vector-effect: non-scaling-stroke;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cellFieldPulse 1.36s ease-in-out infinite alternate;
+  animation-delay: var(--cell-delay);
+}
+
+.loading-veil.is-exiting .loading-veil__cell {
+  animation: cellDematerialize 1.08s cubic-bezier(0.66, 0, 0.34, 1) forwards;
+  animation-delay: calc(var(--cell-delay) * 0.38);
+}
+
+.loading-veil__cell:nth-child(4n + 2) {
+  fill: rgba(24, 31, 34, 0.9);
+  stroke: rgba(196, 177, 114, 0.42);
+}
+
+.loading-veil__cell:nth-child(4n + 3) {
+  fill: rgba(19, 25, 28, 0.88);
+  stroke: rgba(118, 154, 231, 0.36);
+}
+
+.loading-veil__cell:nth-child(5n) {
+  fill: rgba(40, 42, 36, 0.84);
+  stroke: rgba(162, 229, 177, 0.34);
+}
+
+.loading-veil__mark {
+  position: relative;
+  z-index: 1;
+  color: rgba(186, 207, 211, 0.72);
+  font-size: clamp(0.72rem, 0.92vw, 0.9rem);
+  font-variant-caps: all-small-caps;
+  font-feature-settings: "smcp";
+  line-height: 1;
+  opacity: 0;
+  text-shadow:
+    0 0 1.3rem rgba(107, 213, 205, 0.2),
+    0 0 0.08rem rgba(255, 239, 205, 0.25);
+  animation: veilMarkIn 0.72s ease-out 0.18s forwards;
+}
+
+.loading-veil.is-exiting .loading-veil__mark {
+  animation: veilMarkOut 0.68s ease-out forwards;
+}
+
+.loading-veil__mark span {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 0.5rem;
+}
+
+.loading-veil__mark span::after {
+  position: absolute;
+  right: 0.1rem;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  content: "";
+  background: linear-gradient(90deg, rgba(121, 221, 211, 0.56), rgba(231, 207, 143, 0.44), transparent);
+}
+
 @keyframes breathe {
   from {
     transform: scale(1) translate3d(0, 0, 0);
@@ -236,6 +351,89 @@ body {
 
   to {
     transform: scale(1.06) translate3d(1.5rem, -0.7rem, 0);
+  }
+}
+
+@keyframes veilExit {
+  0%,
+  22% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.035);
+  }
+}
+
+@keyframes veilScan {
+  0% {
+    opacity: 0;
+    transform: translateX(-18%);
+  }
+
+  28% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(16%);
+  }
+}
+
+@keyframes cellFieldPulse {
+  from {
+    fill-opacity: 0.84;
+    stroke-opacity: 0.48;
+  }
+
+  to {
+    fill-opacity: 0.92;
+    stroke-opacity: 0.9;
+  }
+}
+
+@keyframes cellDematerialize {
+  0% {
+    fill-opacity: 0.94;
+    stroke-opacity: 0.86;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  36% {
+    fill-opacity: 0.68;
+    stroke-opacity: 1;
+  }
+
+  100% {
+    fill-opacity: 0;
+    stroke-opacity: 0;
+    transform: translate3d(var(--drift-x), var(--drift-y), 0) scale(0.94);
+  }
+}
+
+@keyframes veilMarkIn {
+  0% {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+
+  100% {
+    opacity: 0.78;
+    transform: translateY(0);
+  }
+}
+
+@keyframes veilMarkOut {
+  0% {
+    opacity: 0.78;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-0.18rem);
   }
 }
 
@@ -293,6 +491,16 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .ambient {
     animation: none;
+  }
+
+  .loading-veil.is-exiting {
+    animation: veilExit 0.52s ease-out forwards;
+  }
+
+  .loading-veil::after,
+  .loading-veil__cell,
+  .loading-veil__mark {
+    animation-duration: 0.44s;
   }
 }
 

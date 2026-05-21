@@ -1,4 +1,5 @@
 import LatentGeometry from "./LatentGeometry.jsx";
+import LoadingVeil from "./LoadingVeil.jsx";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
       </section>
 
       <p className="quarry-line">Still in the quarry.</p>
+      <LoadingVeil />
     </main>
   );
 }
