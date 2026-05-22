@@ -1330,21 +1330,12 @@ export default function Hero() {
               y="456"
               textAnchor="middle"
               fill="#ece8de"
-              fontSize="15"
+              fontSize="22"
               fontWeight="400"
               style={{ letterSpacing: "0.32em" }}
             >
-              TRESOR VAN MULDERS
+              I'm Tresor!
             </text>
-            <line
-              x1="700"
-              y1="473"
-              x2="900"
-              y2="473"
-              stroke="#6b6b66"
-              strokeOpacity="0.35"
-              strokeWidth="0.5"
-            />
           </g>
         </svg>
 
