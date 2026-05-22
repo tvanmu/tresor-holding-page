@@ -49,58 +49,10 @@ const NAV_ANCHORS = [
   },
 ];
 
-const MOBILE_NAV_ANCHORS = [
-  {
-    id: "education",
-    label: "I",
-    title: "Education",
-    x: 650,
-    y: 250,
-    textY: 258,
-    position: "tl",
-    originX: "25vw",
-    originY: "31vh",
-    entryX: "-24px",
-    entryY: "-22px",
-  },
-  {
-    id: "projects",
-    label: "II",
-    title: "Projects",
-    x: 950,
-    y: 250,
-    textY: 258,
-    position: "tr",
-    originX: "75vw",
-    originY: "31vh",
-    entryX: "24px",
-    entryY: "-22px",
-  },
-  {
-    id: "contact",
-    label: "III",
-    title: "Contact",
-    x: 800,
-    y: 724,
-    textY: 732,
-    position: "b",
-    originX: "50vw",
-    originY: "78vh",
-    entryX: "0px",
-    entryY: "34px",
-  },
-];
-
 const TRIANGLE_VERTICES = [
   { x: 560,  y: 280 },
   { x: 1040, y: 280 },
   { x: 800,  y: 696 },
-];
-
-const MOBILE_TRIANGLE_VERTICES = [
-  { x: 620, y: 280 },
-  { x: 980, y: 280 },
-  { x: 800, y: 672 },
 ];
 
 const PROXIMITY_BAND = 110;
@@ -136,18 +88,30 @@ export default function Hero() {
   const [active, setActive] = useState(null);
   const [activeSection, setActiveSection] = useState(null);
   const [isContentOpen, setIsContentOpen] = useState(false);
-  const [isMobileLayout, setIsMobileLayout] = useState(false);
   const [ripples, setRipples] = useState([]);
+  const [isCompact, setIsCompact] = useState(false);
+  const [tapOrigin, setTapOrigin] = useState(null);
   const svgRef = useRef(null);
   const closeTimerRef = useRef(null);
   const openFrameRef = useRef(null);
   const rippleIdRef = useRef(0);
 
-  const anchors = isMobileLayout ? MOBILE_NAV_ANCHORS : NAV_ANCHORS;
-  const triangleVertices = isMobileLayout ? MOBILE_TRIANGLE_VERTICES : TRIANGLE_VERTICES;
-  const activeAnchor = anchors.find((anchor) => anchor.id === activeSection);
+  const activeAnchor = NAV_ANCHORS.find((anchor) => anchor.id === activeSection);
   const activeContent = activeSection ? SECTION_CONTENT[activeSection] : null;
   const geometryActive = isContentOpen ? activeSection : active;
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return undefined;
+    const mq = window.matchMedia("(max-width: 820px), (orientation: portrait) and (max-width: 960px)");
+    const update = () => setIsCompact(mq.matches);
+    update();
+    if (mq.addEventListener) {
+      mq.addEventListener("change", update);
+      return () => mq.removeEventListener("change", update);
+    }
+    mq.addListener(update);
+    return () => mq.removeListener(update);
+  }, []);
 
   const closeContent = () => {
     if (openFrameRef.current) {
@@ -179,16 +143,6 @@ export default function Hero() {
   }, []);
 
   useEffect(() => {
-    const mobileQuery = window.matchMedia("(max-width: 700px), (pointer: coarse)");
-    const updateMobileLayout = () => setIsMobileLayout(mobileQuery.matches);
-
-    updateMobileLayout();
-    mobileQuery.addEventListener("change", updateMobileLayout);
-
-    return () => mobileQuery.removeEventListener("change", updateMobileLayout);
-  }, []);
-
-  useEffect(() => {
     if (!isContentOpen) {
       return undefined;
     }
@@ -212,7 +166,7 @@ export default function Hero() {
     }, RIPPLE_LIFETIME);
   };
 
-  const openContent = (anchor) => {
+  const openContent = (anchor, event) => {
     if (closeTimerRef.current) {
       window.clearTimeout(closeTimerRef.current);
     }
@@ -220,17 +174,29 @@ export default function Hero() {
       window.cancelAnimationFrame(openFrameRef.current);
     }
 
+    if (event && typeof event.clientX === "number" && typeof event.clientY === "number") {
+      setTapOrigin({ x: event.clientX, y: event.clientY });
+    } else {
+      setTapOrigin(null);
+    }
+
+    const wasOpen = isContentOpen;
+
     setActive(anchor.id);
     setActiveSection(anchor.id);
-    setIsContentOpen(false);
     triggerRipple(anchor);
 
-    openFrameRef.current = window.requestAnimationFrame(() => {
+    if (wasOpen) {
+      setIsContentOpen(false);
       openFrameRef.current = window.requestAnimationFrame(() => {
-        setIsContentOpen(true);
-        openFrameRef.current = null;
+        openFrameRef.current = window.requestAnimationFrame(() => {
+          setIsContentOpen(true);
+          openFrameRef.current = null;
+        });
       });
-    });
+    } else {
+      setIsContentOpen(true);
+    }
   };
 
   const handlePointerMove = (event) => {
@@ -248,7 +214,7 @@ export default function Hero() {
 
     let best = null;
     let bestDist = Infinity;
-    for (const anchor of anchors) {
+    for (const anchor of NAV_ANCHORS) {
       const d = Math.hypot(local.x - anchor.x, local.y - anchor.y);
       if (d < PROXIMITY_BAND && d < bestDist) {
         best = anchor.id;
@@ -299,9 +265,11 @@ export default function Hero() {
           position: relative;
           width: 100%;
           height: 100vh;
+          height: 100dvh;
           background: #000;
           overflow: hidden;
           color: #f3f2eb;
+          touch-action: manipulation;
         }
 
         /* Soft vertical center line + repeating vertical guides, drifting */
@@ -326,7 +294,6 @@ export default function Hero() {
           height: 100%;
           display: block;
           cursor: default;
-          touch-action: manipulation;
           z-index: 2;
           transition:
             opacity 1s ease,
@@ -348,19 +315,16 @@ export default function Hero() {
           to { transform: translateX(3%); opacity: 0.32; }
         }
         @keyframes tvm-breathe-a {
-          0%, 100% { opacity: 0.5; }
-          50%      { opacity: 0.8; }
-        }
-        @keyframes tvm-breathe-b {
           0%, 100% { opacity: 0.55; }
           50%      { opacity: 0.8; }
-        }
-        @keyframes tvm-draw {
-          to { stroke-dashoffset: 0; }
         }
         @keyframes tvm-fade-in {
           from { opacity: 0; }
           to   { opacity: 1; }
+        }
+        @keyframes tvm-fade-in-soft {
+          from { opacity: 0; }
+          to   { opacity: 0.55; }
         }
         @keyframes tvm-dash-drift {
           to { stroke-dashoffset: -32; }
@@ -371,51 +335,45 @@ export default function Hero() {
           100% { r: 360; stroke-opacity: 0; }
         }
 
-        /* ----- Static decorative groups ----- */
+        /* ----- Loading sequence: geometry first, atmosphere after ----- */
 
-        .tvm-fan     { animation: tvm-breathe-a 8s ease-in-out infinite; }
-        .tvm-feather { animation: tvm-breathe-b 9s ease-in-out -2s infinite; }
-
-        .tvm-arc-solid {
-          stroke-dasharray: 1;
-          stroke-dashoffset: 1;
-          animation: tvm-draw 2s ease-out 0.3s forwards;
-        }
-        .tvm-arc-dashed {
-          opacity: 0;
-          animation: tvm-fade-in 1.4s ease-out 1.4s forwards;
-        }
-        .tvm-plane {
-          opacity: 0;
-          animation: tvm-fade-in 0.3s ease-out 0.3s forwards;
-        }
         .tvm-triangle {
           opacity: 0;
-          animation: tvm-fade-in 1.5s ease-out 1.9s forwards;
-        }
-        .tvm-numerals {
-          opacity: 0;
-          animation: tvm-fade-in 1.5s ease-out 2.1s forwards;
-        }
-        .tvm-wordmark {
-          opacity: 0;
-          animation: tvm-fade-in 1.5s ease-out 2.5s forwards;
+          animation: tvm-fade-in 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.35s forwards;
         }
         .tvm-vertex-orbits {
           opacity: 0;
-          animation: tvm-fade-in 1.8s ease-out 2.3s forwards;
-        }
-        .tvm-apex-lights {
-          opacity: 0;
-          animation: tvm-fade-in 1.2s ease-out 2.5s forwards;
+          animation: tvm-fade-in 1.3s cubic-bezier(0.22, 1, 0.36, 1) 0.55s forwards;
         }
         .tvm-idle-traces {
           opacity: 0;
-          animation: tvm-fade-in 1.5s ease-out 2.6s forwards;
+          animation: tvm-fade-in 1.4s cubic-bezier(0.22, 1, 0.36, 1) 0.75s forwards;
         }
-        .tvm-center-cross {
+        .tvm-apex-lights {
           opacity: 0;
-          animation: tvm-fade-in 1.2s ease-out 2.7s forwards;
+          animation: tvm-fade-in 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.95s forwards;
+        }
+        .tvm-numerals {
+          opacity: 0;
+          animation: tvm-fade-in 1.2s cubic-bezier(0.22, 1, 0.36, 1) 1.1s forwards;
+        }
+        .tvm-wordmark {
+          opacity: 0;
+          animation: tvm-fade-in 1.3s cubic-bezier(0.22, 1, 0.36, 1) 1.3s forwards;
+        }
+        .tvm-fan {
+          opacity: 0;
+          animation:
+            tvm-fade-in-soft 1.6s cubic-bezier(0.22, 1, 0.36, 1) 1.6s forwards,
+            tvm-breathe-a 8s ease-in-out 3.2s infinite;
+        }
+        .tvm-flightpath {
+          opacity: 0;
+          animation: tvm-fade-in 1.4s cubic-bezier(0.22, 1, 0.36, 1) 2s forwards;
+        }
+        .tvm-plane {
+          opacity: 0;
+          animation: tvm-fade-in 0.7s ease-out 2.5s forwards;
         }
 
         /* ----- Interactive vertex orbits ----- */
@@ -461,12 +419,18 @@ export default function Hero() {
           pointer-events: none;
           transition:
             fill 0.45s ease,
+            filter 0.5s ease,
             transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .tvm-numeral-group[data-active="true"] .tvm-numeral {
           fill: #f3f2eb;
+          filter:
+            drop-shadow(0 0 6px rgba(243, 242, 235, 0.65))
+            drop-shadow(0 0 16px rgba(243, 242, 235, 0.35))
+            drop-shadow(0 0 32px rgba(243, 242, 235, 0.18));
         }
+
         .tvm-numeral-group.tvm-pos-tl[data-active="true"] .tvm-numeral {
           transform: translate(3px, -2px);
         }
@@ -901,74 +865,21 @@ export default function Hero() {
           transform: translateX(-50%) scale(1.08);
         }
 
-        .tvm-close:focus-visible,
-        .tvm-numeral-group:focus-visible .tvm-numeral-hit {
+        .tvm-close:focus-visible {
           outline: 1px solid rgba(243,242,235,0.32);
           outline-offset: 6px;
         }
 
-        @media (max-width: 700px), (pointer: coarse) {
-          .tvm-hero {
-            height: 100svh;
-            min-height: 100svh;
-          }
+        .tvm-numeral-group,
+        .tvm-numeral-group:focus,
+        .tvm-numeral-group:focus-visible,
+        .tvm-numeral-hit,
+        .tvm-numeral-hit:focus,
+        .tvm-numeral-hit:focus-visible {
+          outline: none;
+        }
 
-          .tvm-hero::before,
-          .tvm-fan,
-          .tvm-feather,
-          .tvm-orbit-dashed,
-          .tvm-arc-solid,
-          .tvm-plane,
-          .tvm-triangle,
-          .tvm-numerals,
-          .tvm-wordmark,
-          .tvm-vertex-orbits,
-          .tvm-apex-lights,
-          .tvm-center-cross {
-            animation: none;
-          }
-
-          .tvm-arc-solid {
-            stroke-dashoffset: 0;
-          }
-
-          .tvm-plane,
-          .tvm-triangle,
-          .tvm-numerals,
-          .tvm-wordmark,
-          .tvm-vertex-orbits,
-          .tvm-apex-lights,
-          .tvm-center-cross {
-            opacity: 1;
-          }
-
-          .tvm-fan {
-            opacity: 0.42;
-          }
-
-          .tvm-feather {
-            opacity: 0.48;
-          }
-
-          .tvm-idle-traces {
-            display: none;
-          }
-
-          .tvm-orbit-group {
-            transition:
-              opacity 0.45s ease,
-              transform 0.45s ease;
-          }
-
-          .tvm-numeral {
-            font-size: 31px;
-          }
-
-          .tvm-hero[data-panel-open="true"] .tvm-svg {
-            opacity: 0.36;
-            filter: none;
-          }
-
+          @media (max-width: 700px) {
           .tvm-content-panel {
             width: min(90vw, 430px);
             min-height: min(58dvh, 440px);
@@ -993,25 +904,71 @@ export default function Hero() {
           }
         }
 
+        /* ----- Touch / compact viewport (mobile portrait) ----- */
+
+        .tvm-hero[data-compact="true"] .tvm-numeral {
+          font-size: 56px;
+        }
+
+        .tvm-hero[data-compact="true"][data-panel-open="true"] .tvm-svg {
+          opacity: 0.32;
+          filter: none;
+        }
+
+        .tvm-hero[data-compact="true"] .tvm-content-shell::after {
+          display: none;
+        }
+
+        .tvm-hero[data-compact="true"] .tvm-content-shell::before {
+          transition:
+            clip-path 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+            opacity 0.5s ease;
+        }
+
+        .tvm-hero[data-compact="true"] .tvm-content-panel {
+          transition:
+            opacity 0.55s ease,
+            transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @media (hover: none) {
+          .tvm-numeral-group[data-active="true"] .tvm-numeral,
+          .tvm-numeral-group.tvm-pos-tl[data-active="true"] .tvm-numeral,
+          .tvm-numeral-group.tvm-pos-tr[data-active="true"] .tvm-numeral,
+          .tvm-numeral-group.tvm-pos-b[data-active="true"] .tvm-numeral {
+            transform: none;
+          }
+
+          .tvm-hero::before {
+            animation-duration: 48s;
+          }
+
+          .tvm-fan {
+            animation: none;
+            opacity: 0.55;
+          }
+
+          .tvm-orbit-dashed {
+            animation: none;
+          }
+        }
+
         /* ----- Reduced motion ----- */
 
         @media (prefers-reduced-motion: reduce) {
           .tvm-hero::before,
           .tvm-fan,
-          .tvm-feather,
           .tvm-orbit-dashed {
             animation: none;
           }
-          .tvm-arc-solid,
-          .tvm-arc-dashed,
+          .tvm-flightpath,
           .tvm-plane,
           .tvm-triangle,
           .tvm-numerals,
           .tvm-wordmark,
           .tvm-vertex-orbits,
           .tvm-apex-lights,
-          .tvm-idle-traces,
-          .tvm-center-cross {
+          .tvm-idle-traces {
             opacity: 1;
             animation: none;
           }
@@ -1033,97 +990,69 @@ export default function Hero() {
         className="tvm-hero"
         data-active={geometryActive !== null}
         data-panel-open={isContentOpen}
-        data-mobile-layout={isMobileLayout}
+        data-compact={isCompact}
         style={{
-          "--panel-origin-x": activeAnchor?.originX ?? "50vw",
-          "--panel-origin-y": activeAnchor?.originY ?? "50vh",
-          "--entry-x": activeAnchor?.entryX ?? "0px",
-          "--entry-y": activeAnchor?.entryY ?? "32px",
+          "--panel-origin-x": tapOrigin ? `${tapOrigin.x}px` : activeAnchor?.originX ?? "50vw",
+          "--panel-origin-y": tapOrigin ? `${tapOrigin.y}px` : activeAnchor?.originY ?? "50vh",
+          "--entry-x": isCompact ? "0px" : activeAnchor?.entryX ?? "0px",
+          "--entry-y": isCompact ? "18px" : activeAnchor?.entryY ?? "32px",
         }}
       >
         <svg
           ref={svgRef}
-          viewBox="0 0 1600 900"
+          viewBox={isCompact ? "320 90 960 720" : "0 0 1600 900"}
           className="tvm-svg"
-          preserveAspectRatio="xMidYMid slice"
+          preserveAspectRatio={isCompact ? "xMidYMid meet" : "xMidYMid slice"}
           onPointerMove={handlePointerMove}
           onPointerLeave={handlePointerLeave}
           xmlns="http://www.w3.org/2000/svg"
         >
-          <defs>
-            <linearGradient id="tvm-left-feather-fade" x1="58" x2="532" y1="0" y2="0" gradientUnits="userSpaceOnUse">
-              <stop offset="0" stopColor="black" />
-              <stop offset="0.08" stopColor="white" />
-              <stop offset="1" stopColor="white" />
-            </linearGradient>
-            <mask id="tvm-left-feather-mask" maskUnits="userSpaceOnUse">
-              <rect x="54" y="560" width="500" height="98" fill="url(#tvm-left-feather-fade)" />
-            </mask>
-          </defs>
+          {/* 0. Cruising plane (background layer — behind every other mark) */}
+          <g id="trajectory">
+            <path
+              id="tvm-plane-path"
+              d="M -200,100 Q 800,460 1800,100"
+              fill="none"
+              stroke="#ece8de"
+              strokeWidth="0.6"
+              strokeOpacity="0.16"
+              strokeDasharray="2 6"
+              strokeLinecap="round"
+              className="tvm-flightpath"
+            />
+            <g className="tvm-plane">
+              <path
+                d="M 12,0 L -1.3,-0.95 L -5.5,-9.5 L -6.8,-9.5 L -4,-0.95 L -8.7,-0.95 L -10,-4 L -11.5,-4 L -10.8,-0.95 L -12.2,-0.95 L -12.2,0.95 L -10.8,0.95 L -11.5,4 L -10,4 L -8.7,0.95 L -4,0.95 L -6.8,9.5 L -5.5,9.5 L -1.3,0.95 Z"
+                fill="#ece8de"
+                fillOpacity="0.32"
+              />
+              <animateMotion
+                dur="24s"
+                begin="2.5s"
+                repeatCount="indefinite"
+                rotate="auto"
+                calcMode="linear"
+                keyTimes="0; 0.42; 1"
+                keyPoints="0; 1; 1"
+              >
+                <mpath href="#tvm-plane-path" />
+              </animateMotion>
+            </g>
+          </g>
 
           {/* 1. Right fan & left feather */}
           <g id="rightFan" className="tvm-fan" stroke="white" fill="none" strokeWidth="0.7" strokeOpacity="0.6">
             {Array.from({ length: 10 }).map((_, i) => (
               <path
                 key={`fan-${i}`}
-                d={`M 1562,${438 - i * 1.6} C 1400,${380 - i * 4.5} ${1130 - i * 6},${520 + i * 5.5} ${760 - i * 22},${640 + i * 9}`}
+                d={`M 1760,${478 - i * 1.4} C 1460,${398 - i * 4.5} ${1130 - i * 6},${520 + i * 5.5} ${760 - i * 22},${640 + i * 9}`}
               />
             ))}
           </g>
 
-          <g
-            id="leftFeather"
-            className="tvm-feather"
-            stroke="white"
-            fill="none"
-            strokeWidth="0.7"
-            strokeOpacity="0.65"
-            strokeLinecap="butt"
-            mask="url(#tvm-left-feather-mask)"
-          >
-            {Array.from({ length: 8 }).map((_, i) => {
-              const t = i - 3.5;
-              const startX = 76 + Math.max(0, i - 2) * 1.5;
-              const tipX = 508;
-              const tipY = 604;
-              const controlX = 330 + i * 8;
-              const controlY = 581 + t * 5.2;
-
-              return (
-                <path
-                  key={`feather-${i}`}
-                  d={`M ${startX},${618 + t * 1.6} C 176,${594 + t * 3.8} ${controlX},${controlY} ${tipX},${tipY}`}
-                />
-              );
-            })}
-          </g>
-
-          {/* 2. Trajectory + airplane */}
-          <g id="trajectory">
-            <path
-              id="tvm-plane-path"
-              d="M 790,275 Q 1260,140 1540,75"
-              fill="none"
-              stroke="white"
-              strokeWidth="1.2"
-              strokeOpacity="0.85"
-              pathLength="1"
-              className="tvm-arc-solid"
-            />
-            <g className="tvm-plane">
-              <path
-                d="M 10,0 L -2,-1 L -4,-6 L -6,-6 L -4,-1 L -8,-1 L -8,1 L -4,1 L -6,6 L -4,6 L -2,1 Z"
-                fill="white"
-              />
-              <animateMotion dur="2s" begin="0.3s" fill="freeze" rotate="auto">
-                <mpath href="#tvm-plane-path" />
-              </animateMotion>
-            </g>
-          </g>
-
           {/* 4. Vertex orbits — proximity-driven concentric circles */}
           <g id="vertexOrbits" className="tvm-vertex-orbits">
-            {anchors.map((anchor) => {
+            {NAV_ANCHORS.map((anchor) => {
               const r = baseRadiusFor(anchor);
               const op = orbitOpacity(anchor.id);
               const scale = orbitScale(anchor.id);
@@ -1161,57 +1090,37 @@ export default function Hero() {
           </g>
 
           {/* 5. Idle traces — slow rotating arcs around each anchor */}
-          {!isMobileLayout && (
-            <g id="idleTraces" className="tvm-idle-traces">
-              {anchors.map((anchor, i) => {
-                const r = baseRadiusFor(anchor);
-                const dur = 22 + i * 4;
-                return (
-                  <g
-                    key={`trace-${anchor.id}`}
-                    className="tvm-idle-trace"
-                    style={{ opacity: idleOpacity(anchor.id) }}
+          <g id="idleTraces" className="tvm-idle-traces">
+            {NAV_ANCHORS.map((anchor, i) => {
+              const r = baseRadiusFor(anchor);
+              const dur = 22 + i * 4;
+              return (
+                <g
+                  key={`trace-${anchor.id}`}
+                  className="tvm-idle-trace"
+                  style={{ opacity: idleOpacity(anchor.id) }}
+                >
+                  <circle
+                    cx={anchor.x}
+                    cy={anchor.y}
+                    r={r * 1.012}
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="0.8"
+                    strokeDasharray={`${r * 0.48} ${r * 6}`}
                   >
-                    <circle
-                      cx={anchor.x}
-                      cy={anchor.y}
-                      r={r * 1.012}
-                      fill="none"
-                      stroke="white"
-                      strokeWidth="0.8"
-                      strokeDasharray={`${r * 0.48} ${r * 6}`}
-                    >
-                      <animateTransform
-                        attributeName="transform"
-                        type="rotate"
-                        from={`${i * 90} ${anchor.x} ${anchor.y}`}
-                        to={`${i * 90 + 360} ${anchor.x} ${anchor.y}`}
-                        dur={`${dur}s`}
-                        repeatCount="indefinite"
-                      />
-                    </circle>
-                  </g>
-                );
-              })}
-            </g>
-          )}
-
-          {/* 6. Center crosshair + faint spokes to vertices */}
-          <g id="centerCross" className="tvm-center-cross">
-            <g stroke="white" fill="none" strokeOpacity="0.045" strokeWidth="0.8">
-              {anchors.map((anchor) => (
-                <line
-                  key={`spoke-${anchor.id}`}
-                  x1={CENTER.x}
-                  y1={CENTER.y}
-                  x2={anchor.x}
-                  y2={anchor.y}
-                />
-              ))}
-            </g>
-            <line x1={CENTER.x - 5.5} y1={CENTER.y} x2={CENTER.x + 5.5} y2={CENTER.y} stroke="#6b6b66" strokeWidth="0.9" />
-            <line x1={CENTER.x} y1={CENTER.y - 5.5} x2={CENTER.x} y2={CENTER.y + 5.5} stroke="#6b6b66" strokeWidth="0.9" />
-            <circle cx={CENTER.x} cy={CENTER.y} r="1.4" fill="#6b6b66" />
+                    <animateTransform
+                      attributeName="transform"
+                      type="rotate"
+                      from={`${i * 90} ${anchor.x} ${anchor.y}`}
+                      to={`${i * 90 + 360} ${anchor.x} ${anchor.y}`}
+                      dur={`${dur}s`}
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                </g>
+              );
+            })}
           </g>
 
           {/* 7. Click ripples */}
@@ -1233,20 +1142,19 @@ export default function Hero() {
           {/* 8. Inverted equilateral triangle */}
           <g id="triangle" className="tvm-triangle">
             <polygon
-              points={triangleVertices.map((v) => `${v.x},${v.y}`).join(" ")}
+              points={TRIANGLE_VERTICES.map((v) => `${v.x},${v.y}`).join(" ")}
               fill="none"
               stroke="white"
               strokeWidth="1.5"
               strokeOpacity="0.85"
-              strokeLinejoin={isMobileLayout ? "round" : "miter"}
-              strokeLinecap={isMobileLayout ? "round" : "butt"}
+              strokeLinejoin="miter"
             />
           </g>
 
           {/* 9. Apex lights at each triangle vertex */}
           <g id="apexLights" className="tvm-apex-lights">
-            {triangleVertices.map((v, i) => {
-              const anchorId = anchors[i].id;
+            {TRIANGLE_VERTICES.map((v, i) => {
+              const anchorId = NAV_ANCHORS[i].id;
               return (
                 <g
                   key={`apex-${i}`}
@@ -1260,23 +1168,9 @@ export default function Hero() {
             })}
           </g>
 
-          {/* 10. Corner registration marks */}
-          <g id="registrationMarks" stroke="white" fill="none" strokeWidth="1" strokeOpacity="0.7">
-            <g transform="translate(115, 790)">
-              <line x1="-14" y1="0" x2="14" y2="0" />
-              <line x1="0" y1="-14" x2="0" y2="14" />
-              <circle cx="0" cy="0" r="4" />
-            </g>
-            <g transform="translate(1490, 785)">
-              <line x1="-14" y1="0" x2="14" y2="0" />
-              <line x1="0" y1="-14" x2="0" y2="14" />
-              <circle cx="0" cy="0" r="4" />
-            </g>
-          </g>
-
           {/* 11. Roman numerals — interactive nav */}
           <g id="romanNumerals" className="tvm-numerals tvm-serif">
-            {anchors.map((anchor) => {
+            {NAV_ANCHORS.map((anchor) => {
               const isActive = geometryActive === anchor.id;
               return (
                 <g
@@ -1295,7 +1189,7 @@ export default function Hero() {
                   }}
                   onClick={(event) => {
                     event.stopPropagation();
-                    openContent(anchor);
+                    openContent(anchor, event);
                   }}
                   onKeyDown={(event) => {
                     if (event.key !== "Enter" && event.key !== " ") return;
@@ -1309,7 +1203,7 @@ export default function Hero() {
                     className="tvm-numeral-hit"
                     cx={anchor.x}
                     cy={anchor.y}
-                    r={isMobileLayout ? "50" : "34"}
+                    r={isCompact ? 96 : 34}
                   />
                   <text
                     className="tvm-numeral tvm-serif"
@@ -1331,11 +1225,11 @@ export default function Hero() {
               y="456"
               textAnchor="middle"
               fill="#ece8de"
-              fontSize="22"
+              fontSize="15"
               fontWeight="400"
               style={{ letterSpacing: "0.32em" }}
             >
-              I'm Tresor!
+              TRESOR VAN MULDERS
             </text>
           </g>
         </svg>
