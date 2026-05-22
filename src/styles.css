@@ -137,8 +137,7 @@ body {
   line-height: 1;
 }
 
-.site-mark p,
-.quarry-line {
+.site-mark p {
   margin: 0;
   text-shadow:
     0 0 1.3rem rgba(107, 213, 205, 0.16),
@@ -164,69 +163,6 @@ body {
 .site-mark p:last-child {
   text-align: right;
   color: rgba(185, 203, 207, 0.58);
-}
-
-.statue-stage {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  display: grid;
-  place-items: end center;
-  pointer-events: none;
-  transform: translateX(clamp(0rem, 8vw, 7.5rem));
-}
-
-.halo {
-  position: absolute;
-  width: min(56rem, 76vw);
-  height: min(56rem, 76vw);
-  bottom: 13vh;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle, rgba(255, 247, 226, 0.16) 0%, rgba(224, 210, 178, 0.08) 28%, transparent 64%),
-    conic-gradient(from 218deg, transparent 0 28%, rgba(255, 245, 219, 0.055) 36%, transparent 48% 100%);
-  filter: blur(1.1rem);
-  opacity: 0.8;
-}
-
-.statue {
-  position: relative;
-  z-index: 2;
-  display: block;
-  width: min(56vw, 47rem);
-  height: min(90svh, 60rem);
-  object-fit: contain;
-  object-position: center bottom;
-  mix-blend-mode: screen;
-  transform: translateY(3.5vh);
-  filter:
-    brightness(1.04)
-    contrast(1.06)
-    drop-shadow(0 1.4rem 1.5rem rgba(0, 0, 0, 0.72))
-    drop-shadow(-1.6rem 0 3.3rem rgba(238, 229, 206, 0.08))
-    drop-shadow(1.4rem -0.4rem 2.4rem rgba(185, 168, 130, 0.12));
-}
-
-.ground-shadow {
-  position: absolute;
-  bottom: 2.5vh;
-  z-index: 1;
-  width: min(35rem, 46vw);
-  height: 7rem;
-  border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0.45) 42%, transparent 72%);
-  filter: blur(1.2rem);
-  transform: translateX(-1.6rem);
-}
-
-.quarry-line {
-  position: fixed;
-  right: var(--edge);
-  bottom: var(--edge);
-  z-index: 6;
-  color: rgba(219, 209, 190, 0.58);
-  font-size: clamp(0.76rem, 0.95vw, 0.9rem);
-  line-height: 1;
 }
 
 .loading-veil {
@@ -465,27 +401,6 @@ body {
     font-size: 0.84rem;
   }
 
-  .statue-stage {
-    transform: none;
-    place-items: end center;
-  }
-
-  .halo {
-    width: 105vw;
-    height: 105vw;
-    bottom: 18vh;
-  }
-
-  .statue {
-    width: min(92vw, 32rem);
-    height: 82svh;
-    transform: translateY(2.5vh);
-  }
-
-  .ground-shadow {
-    width: 72vw;
-    bottom: 4vh;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -514,15 +429,4 @@ body {
     font-size: 0.76rem;
   }
 
-  .statue {
-    width: 104vw;
-    height: 81svh;
-    transform: translateY(1vh);
-  }
-
-  .quarry-line {
-    left: var(--edge);
-    right: auto;
-    font-size: 0.76rem;
-  }
 }

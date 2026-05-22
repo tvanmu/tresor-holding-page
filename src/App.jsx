@@ -15,13 +15,6 @@ function App() {
         <p>2026</p>
       </header>
 
-      <section className="statue-stage" aria-hidden="true">
-        <div className="halo" />
-        <img className="statue" src="/weareback.png" alt="" />
-        <div className="ground-shadow" />
-      </section>
-
-      <p className="quarry-line">Still in the quarry.</p>
       <LoadingVeil />
     </main>
   );

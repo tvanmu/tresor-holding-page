@@ -56,50 +56,19 @@ function LoadingVeil() {
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const minimumDelay = reducedMotion ? 520 : 1860;
-    let minimumDone = false;
-    let imageReady = false;
-    const statue = document.querySelector(".statue");
-
     const finishIntro = () => {
-      if (!minimumDone || !imageReady) {
-        return;
-      }
-
       if (!replayIntro) {
         window.sessionStorage.setItem("tresor-intro-seen", "true");
       }
       setExiting(true);
     };
 
-    const markImageReady = () => {
-      imageReady = true;
-      finishIntro();
-    };
-
     const minimumTimer = window.setTimeout(() => {
-      minimumDone = true;
       finishIntro();
     }, minimumDelay);
-    const fallbackTimer = window.setTimeout(() => {
-      minimumDone = true;
-      imageReady = true;
-      finishIntro();
-    }, reducedMotion ? 900 : 3400);
-
-    if (statue?.complete) {
-      markImageReady();
-    } else if (statue) {
-      statue.addEventListener("load", markImageReady, { once: true });
-      statue.addEventListener("error", markImageReady, { once: true });
-    } else {
-      markImageReady();
-    }
 
     return () => {
       window.clearTimeout(minimumTimer);
-      window.clearTimeout(fallbackTimer);
-      statue?.removeEventListener("load", markImageReady);
-      statue?.removeEventListener("error", markImageReady);
     };
   }, [exiting, replayIntro, visible]);
 
