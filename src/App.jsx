@@ -5,33 +5,37 @@ const NAV_ITEMS = [
     id: "education",
     label: "Education",
     positionClass: "pos-top-left",
-    entryX: "-60px",
-    entryY: "-60px",
+    entryX: "-34px",
+    entryY: "-28px",
   },
   {
     id: "projects",
     label: "Projects",
     positionClass: "pos-top-right",
-    entryX: "60px",
-    entryY: "-60px",
+    entryX: "34px",
+    entryY: "-28px",
   },
   {
     id: "contact",
     label: "Contact",
     positionClass: "pos-bottom-mid",
     entryX: "0px",
-    entryY: "60px",
+    entryY: "34px",
   },
 ];
 
 const CONTENT_EXIT_MS = 1300;
 const CIRCLE_HIT_BAND = 82;
 const MOBILE_CIRCLE_HIT_BAND = 118;
+const TRIANGLE_WORD_GAP = 28;
+const MOBILE_TRIANGLE_WORD_GAP = 18;
 
 const createAnchors = () => ({
   education: {
     x: 0,
     y: 0,
+    triangleX: 0,
+    triangleY: 0,
     baseR: 0,
     rScale: 1,
     targetRScale: 1,
@@ -41,6 +45,8 @@ const createAnchors = () => ({
   projects: {
     x: 0,
     y: 0,
+    triangleX: 0,
+    triangleY: 0,
     baseR: 0,
     rScale: 1,
     targetRScale: 1,
@@ -50,6 +56,8 @@ const createAnchors = () => ({
   contact: {
     x: 0,
     y: 0,
+    triangleX: 0,
+    triangleY: 0,
     baseR: 0,
     rScale: 1,
     targetRScale: 1,
@@ -63,6 +71,7 @@ function App() {
   const [hoveredSection, setHoveredSection] = useState(null);
   const [isContentOpen, setIsContentOpen] = useState(false);
   const [entryOffset, setEntryOffset] = useState({ x: "0px", y: "40px" });
+  const [contentOrigin, setContentOrigin] = useState({ x: "50vw", y: "50vh" });
   const anchorsRef = useRef(null);
   const canvasRef = useRef(null);
   const centerCoreRef = useRef(null);
@@ -112,11 +121,65 @@ function App() {
           return;
         }
 
-        const rect = element.getBoundingClientRect();
+        const anchorElement = element.querySelector(".nav-link") ?? element;
+        const rect = anchorElement.getBoundingClientRect();
+        const triangleGap = width <= 768 ? MOBILE_TRIANGLE_WORD_GAP : TRIANGLE_WORD_GAP;
+
         anchor.x = rect.left + rect.width / 2;
         anchor.y = rect.top + rect.height / 2;
+        anchor.triangleX = anchor.x;
+        anchor.triangleY = id === "contact" ? rect.top - triangleGap : rect.bottom + triangleGap;
         anchor.baseR = Math.hypot(cx - anchor.x, cy - anchor.y);
       });
+    };
+
+    const drawFadingLine = (from, to, reach, intensity, lineWidth) => {
+      const endX = from.x + (to.x - from.x) * reach;
+      const endY = from.y + (to.y - from.y) * reach;
+      const gradient = ctx.createLinearGradient(from.x, from.y, endX, endY);
+
+      gradient.addColorStop(0, `rgba(243, 242, 235, ${intensity})`);
+      gradient.addColorStop(0.45, `rgba(243, 242, 235, ${intensity * 0.36})`);
+      gradient.addColorStop(1, "rgba(243, 242, 235, 0)");
+
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(endX, endY);
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = lineWidth;
+      ctx.stroke();
+    };
+
+    const drawApexLight = (points) => {
+      const edgeReach = width <= 768 ? 0.12 : 0.15;
+      const centerReach = width <= 768 ? 0.08 : 0.1;
+      const coreRadius = width <= 768 ? 1.1 : 1.35;
+      const pinRadius = width <= 768 ? 2.4 : 3;
+
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+
+      points.forEach((point, index) => {
+        const previousPoint = points[(index + points.length - 1) % points.length];
+        const nextPoint = points[(index + 1) % points.length];
+        const centerPoint = { x: cx, y: cy };
+
+        drawFadingLine(point, previousPoint, edgeReach, 0.16, 0.95);
+        drawFadingLine(point, nextPoint, edgeReach, 0.16, 0.95);
+        drawFadingLine(point, centerPoint, centerReach, 0.06, 0.65);
+
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, pinRadius, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(243, 242, 235, 0.08)";
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, coreRadius, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(243, 242, 235, 0.38)";
+        ctx.fill();
+      });
+
+      ctx.restore();
     };
 
     const drawGeometry = () => {
@@ -127,24 +190,31 @@ function App() {
       const measuredAnchors = anchorList.filter((anchor) => anchor.baseR > 0);
 
       if (measuredAnchors.length === 3) {
+        const trianglePoints = measuredAnchors.map((anchor) => ({
+          x: anchor.triangleX,
+          y: anchor.triangleY,
+        }));
+
         ctx.beginPath();
-        ctx.moveTo(measuredAnchors[0].x, measuredAnchors[0].y);
-        measuredAnchors.slice(1).forEach((anchor) => {
-          ctx.lineTo(anchor.x, anchor.y);
+        ctx.moveTo(trianglePoints[0].x, trianglePoints[0].y);
+        trianglePoints.slice(1).forEach((point) => {
+          ctx.lineTo(point.x, point.y);
         });
         ctx.closePath();
-        ctx.strokeStyle = "rgba(243, 242, 235, 0.025)";
+        ctx.strokeStyle = "rgba(243, 242, 235, 0.035)";
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        measuredAnchors.forEach((anchor) => {
+        trianglePoints.forEach((point) => {
           ctx.beginPath();
           ctx.moveTo(cx, cy);
-          ctx.lineTo(anchor.x, anchor.y);
+          ctx.lineTo(point.x, point.y);
           ctx.strokeStyle = "rgba(243, 242, 235, 0.018)";
           ctx.lineWidth = 1;
           ctx.stroke();
         });
+
+        drawApexLight(trianglePoints);
       }
 
       anchorList.forEach((anchor) => {
@@ -191,6 +261,9 @@ function App() {
     };
 
     updateAnchorMetrics();
+
+    const metricRefreshTimers = [120, 800, 2300].map((delay) => window.setTimeout(updateAnchorMetrics, delay));
+
     drawGeometry();
 
     if (document.fonts?.ready) {
@@ -206,6 +279,7 @@ function App() {
     return () => {
       isMounted = false;
       window.cancelAnimationFrame(animationFrame);
+      metricRefreshTimers.forEach((timer) => window.clearTimeout(timer));
       window.removeEventListener("resize", updateAnchorMetrics);
     };
   }, []);
@@ -229,6 +303,10 @@ function App() {
     setHoveredSection(null);
     hoveredSectionRef.current = null;
     setEntryOffset({ x: item.entryX, y: item.entryY });
+    setContentOrigin({
+      x: `${selectedAnchor.triangleX || selectedAnchor.x}px`,
+      y: `${selectedAnchor.triangleY || selectedAnchor.y}px`,
+    });
 
     ripplesRef.current.push({
       x: selectedAnchor.x,
@@ -386,6 +464,8 @@ function App() {
       onPointerLeave={handlePagePointerLeave}
       onPointerMove={handlePagePointerMove}
       style={{
+        "--content-origin-x": contentOrigin.x,
+        "--content-origin-y": contentOrigin.y,
         "--entry-x": entryOffset.x,
         "--entry-y": entryOffset.y,
       }}
