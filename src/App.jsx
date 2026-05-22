@@ -39,8 +39,8 @@ const createAnchors = () => ({
     baseR: 0,
     rScale: 1,
     targetRScale: 1,
-    targetOp: 0.1,
-    op: 0.1,
+    targetOp: 0.18,
+    op: 0.18,
   },
   projects: {
     x: 0,
@@ -50,8 +50,8 @@ const createAnchors = () => ({
     baseR: 0,
     rScale: 1,
     targetRScale: 1,
-    targetOp: 0.1,
-    op: 0.1,
+    targetOp: 0.18,
+    op: 0.18,
   },
   contact: {
     x: 0,
@@ -61,8 +61,8 @@ const createAnchors = () => ({
     baseR: 0,
     rScale: 1,
     targetRScale: 1,
-    targetOp: 0.1,
-    op: 0.1,
+    targetOp: 0.18,
+    op: 0.18,
   },
 });
 
@@ -164,18 +164,18 @@ function App() {
         const nextPoint = points[(index + 1) % points.length];
         const centerPoint = { x: cx, y: cy };
 
-        drawFadingLine(point, previousPoint, edgeReach, 0.16, 0.95);
-        drawFadingLine(point, nextPoint, edgeReach, 0.16, 0.95);
-        drawFadingLine(point, centerPoint, centerReach, 0.06, 0.65);
+        drawFadingLine(point, previousPoint, edgeReach, 0.28, 1.05);
+        drawFadingLine(point, nextPoint, edgeReach, 0.28, 1.05);
+        drawFadingLine(point, centerPoint, centerReach, 0.12, 0.75);
 
         ctx.beginPath();
         ctx.arc(point.x, point.y, pinRadius, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(243, 242, 235, 0.08)";
+        ctx.fillStyle = "rgba(243, 242, 235, 0.16)";
         ctx.fill();
 
         ctx.beginPath();
         ctx.arc(point.x, point.y, coreRadius, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(243, 242, 235, 0.38)";
+        ctx.fillStyle = "rgba(243, 242, 235, 0.58)";
         ctx.fill();
       });
 
@@ -201,15 +201,15 @@ function App() {
           ctx.lineTo(point.x, point.y);
         });
         ctx.closePath();
-        ctx.strokeStyle = "rgba(243, 242, 235, 0.035)";
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(243, 242, 235, 0.09)";
+        ctx.lineWidth = 1.1;
         ctx.stroke();
 
         trianglePoints.forEach((point) => {
           ctx.beginPath();
           ctx.moveTo(cx, cy);
           ctx.lineTo(point.x, point.y);
-          ctx.strokeStyle = "rgba(243, 242, 235, 0.018)";
+          ctx.strokeStyle = "rgba(243, 242, 235, 0.045)";
           ctx.lineWidth = 1;
           ctx.stroke();
         });
@@ -227,12 +227,12 @@ function App() {
           ctx.beginPath();
           ctx.arc(anchor.x, anchor.y, r, 0, Math.PI * 2);
           ctx.strokeStyle = `rgba(243, 242, 235, ${anchor.op})`;
-          ctx.lineWidth = 1;
+          ctx.lineWidth = 1.1;
           ctx.stroke();
 
           ctx.beginPath();
           ctx.arc(anchor.x, anchor.y, Math.max(0, r - 24), 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(243, 242, 235, ${anchor.op * 0.5})`;
+          ctx.strokeStyle = `rgba(243, 242, 235, ${anchor.op * 0.68})`;
           ctx.setLineDash([2, 6]);
           ctx.lineWidth = 1;
           ctx.stroke();
@@ -252,7 +252,7 @@ function App() {
           ctx.beginPath();
           ctx.arc(ripple.x, ripple.y, ripple.r, 0, Math.PI * 2);
           ctx.strokeStyle = `rgba(243, 242, 235, ${ripple.op})`;
-          ctx.lineWidth = 1;
+          ctx.lineWidth = 1.1;
           ctx.stroke();
         }
       }
@@ -312,12 +312,12 @@ function App() {
       x: selectedAnchor.x,
       y: selectedAnchor.y,
       r: selectedAnchor.baseR,
-      op: 0.32,
+      op: 0.48,
       dr: 7,
     });
 
     Object.entries(anchorsRef.current).forEach(([id, anchor]) => {
-      anchor.targetOp = id === item.id ? 0.3 : 0.02;
+      anchor.targetOp = id === item.id ? 0.48 : 0.045;
       anchor.targetRScale = id === item.id ? 1 : 0.94;
     });
   };
@@ -328,7 +328,7 @@ function App() {
     }
 
     Object.entries(anchorsRef.current).forEach(([key, anchor]) => {
-      anchor.targetOp = key === id ? 0.28 : 0.045;
+      anchor.targetOp = key === id ? 0.44 : 0.08;
       anchor.targetRScale = key === id ? 1.025 : 0.985;
     });
   };
@@ -339,7 +339,7 @@ function App() {
     }
 
     Object.values(anchorsRef.current).forEach((anchor) => {
-      anchor.targetOp = 0.1;
+      anchor.targetOp = 0.18;
       anchor.targetRScale = 1;
     });
   };
@@ -448,7 +448,7 @@ function App() {
     setIsContentOpen(false);
 
     Object.values(anchorsRef.current).forEach((anchor) => {
-      anchor.targetOp = 0.1;
+      anchor.targetOp = 0.18;
       anchor.targetRScale = 1;
     });
 
