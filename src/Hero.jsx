@@ -1276,7 +1276,7 @@ export default function Hero() {
               fontWeight="400"
               style={{ letterSpacing: "0.32em" }}
             >
-              TRESOR VAN MULDERS
+              I'm Tresor
             </text>
           </g>
         </svg>
