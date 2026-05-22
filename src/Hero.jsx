@@ -52,7 +52,7 @@ const NAV_ANCHORS = [
 const COMPACT_NAV_ANCHORS = [
   {
     ...NAV_ANCHORS[0],
-    x: 675,
+    x: 650,
     y: 256,
     textY: 264,
     originX: "24vw",
@@ -60,7 +60,7 @@ const COMPACT_NAV_ANCHORS = [
   },
   {
     ...NAV_ANCHORS[1],
-    x: 925,
+    x: 952,
     y: 256,
     textY: 264,
     originX: "76vw",
