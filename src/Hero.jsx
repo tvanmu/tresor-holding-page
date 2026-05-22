@@ -98,9 +98,9 @@ const TRIANGLE_VERTICES = [
 ];
 
 const MOBILE_TRIANGLE_VERTICES = [
-  { x: 650, y: 280 },
-  { x: 950, y: 280 },
-  { x: 800, y: 696 },
+  { x: 620, y: 280 },
+  { x: 980, y: 280 },
+  { x: 800, y: 672 },
 ];
 
 const PROXIMITY_BAND = 110;
@@ -1238,7 +1238,8 @@ export default function Hero() {
               stroke="white"
               strokeWidth="1.5"
               strokeOpacity="0.85"
-              strokeLinejoin="miter"
+              strokeLinejoin={isMobileLayout ? "round" : "miter"}
+              strokeLinecap={isMobileLayout ? "round" : "butt"}
             />
           </g>
 
