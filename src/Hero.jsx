@@ -52,17 +52,17 @@ const NAV_ANCHORS = [
 const COMPACT_NAV_ANCHORS = [
   {
     ...NAV_ANCHORS[0],
-    x: 700,
-    y: 252,
-    textY: 260,
+    x: 685,
+    y: 256,
+    textY: 264,
     originX: "24vw",
     originY: "24vh",
   },
   {
     ...NAV_ANCHORS[1],
-    x: 900,
-    y: 252,
-    textY: 260,
+    x: 915,
+    y: 256,
+    textY: 264,
     originX: "76vw",
     originY: "24vh",
   },
@@ -82,9 +82,9 @@ const TRIANGLE_VERTICES = [
 ];
 
 const COMPACT_TRIANGLE_VERTICES = [
-  { x: 650, y: 280 },
-  { x: 950, y: 280 },
-  { x: 800, y: 690 },
+  { x: 640, y: 280 },
+  { x: 960, y: 280 },
+  { x: 800, y: 680 },
 ];
 
 const PROXIMITY_BAND = 110;
@@ -1281,8 +1281,8 @@ export default function Hero() {
               points={triangleVertices.map((v) => `${v.x},${v.y}`).join(" ")}
               fill="none"
               stroke="white"
-              strokeWidth="1.5"
-              strokeOpacity="0.85"
+              strokeWidth={isCompact ? "1.34" : "1.5"}
+              strokeOpacity={isCompact ? "0.78" : "0.85"}
               strokeLinejoin={isCompact ? "round" : "miter"}
               strokeLinecap={isCompact ? "round" : "butt"}
             />
@@ -1298,8 +1298,18 @@ export default function Hero() {
                   className="tvm-apex"
                   style={{ opacity: apexOpacity(anchorId) }}
                 >
-                  <circle cx={v.x} cy={v.y} r="3.4" fill="rgba(243,242,235,0.16)" />
-                  <circle cx={v.x} cy={v.y} r="1.5" fill="rgba(243,242,235,0.78)" />
+                  <circle
+                    cx={v.x}
+                    cy={v.y}
+                    r={isCompact ? "2.6" : "3.4"}
+                    fill={isCompact ? "rgba(243,242,235,0.11)" : "rgba(243,242,235,0.16)"}
+                  />
+                  <circle
+                    cx={v.x}
+                    cy={v.y}
+                    r={isCompact ? "1.1" : "1.5"}
+                    fill={isCompact ? "rgba(243,242,235,0.58)" : "rgba(243,242,235,0.78)"}
+                  />
                 </g>
               );
             })}
