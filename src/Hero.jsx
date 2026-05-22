@@ -49,6 +49,32 @@ const NAV_ANCHORS = [
   },
 ];
 
+const COMPACT_NAV_ANCHORS = [
+  {
+    ...NAV_ANCHORS[0],
+    x: 700,
+    y: 252,
+    textY: 260,
+    originX: "24vw",
+    originY: "24vh",
+  },
+  {
+    ...NAV_ANCHORS[1],
+    x: 900,
+    y: 252,
+    textY: 260,
+    originX: "76vw",
+    originY: "24vh",
+  },
+  {
+    ...NAV_ANCHORS[2],
+    x: 800,
+    y: 744,
+    textY: 752,
+    originY: "76vh",
+  },
+];
+
 const TRIANGLE_VERTICES = [
   { x: 560,  y: 280 },
   { x: 1040, y: 280 },
@@ -56,9 +82,9 @@ const TRIANGLE_VERTICES = [
 ];
 
 const COMPACT_TRIANGLE_VERTICES = [
-  { x: 620, y: 280 },
-  { x: 980, y: 280 },
-  { x: 800, y: 672 },
+  { x: 650, y: 280 },
+  { x: 950, y: 280 },
+  { x: 800, y: 690 },
 ];
 
 const PROXIMITY_BAND = 110;
@@ -101,23 +127,49 @@ export default function Hero() {
   const closeTimerRef = useRef(null);
   const openFrameRef = useRef(null);
   const rippleIdRef = useRef(0);
+  const suppressBackdropUntilRef = useRef(0);
 
   const activeAnchor = NAV_ANCHORS.find((anchor) => anchor.id === activeSection);
   const activeContent = activeSection ? SECTION_CONTENT[activeSection] : null;
   const geometryActive = isContentOpen ? activeSection : active;
+  const layoutAnchors = isCompact ? COMPACT_NAV_ANCHORS : NAV_ANCHORS;
   const triangleVertices = isCompact ? COMPACT_TRIANGLE_VERTICES : TRIANGLE_VERTICES;
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return undefined;
-    const mq = window.matchMedia("(max-width: 820px), (orientation: portrait) and (max-width: 960px), (pointer: coarse) and (max-width: 960px)");
-    const update = () => setIsCompact(mq.matches);
+    const mq = window.matchMedia("(max-width: 820px), (orientation: portrait) and (max-width: 960px), (pointer: coarse) and (orientation: portrait)");
+    const update = () => {
+      const viewport = window.visualViewport;
+      const width = viewport?.width ?? window.innerWidth;
+      const height = viewport?.height ?? window.innerHeight;
+      const isTouchPortrait =
+        (navigator.maxTouchPoints > 0 || window.matchMedia("(pointer: coarse)").matches) &&
+        height > width;
+
+      setIsCompact(mq.matches || isTouchPortrait);
+    };
+
     update();
     if (mq.addEventListener) {
       mq.addEventListener("change", update);
-      return () => mq.removeEventListener("change", update);
+    } else {
+      mq.addListener(update);
     }
-    mq.addListener(update);
-    return () => mq.removeListener(update);
+
+    window.addEventListener("resize", update);
+    window.addEventListener("orientationchange", update);
+    window.visualViewport?.addEventListener("resize", update);
+
+    return () => {
+      if (mq.removeEventListener) {
+        mq.removeEventListener("change", update);
+      } else {
+        mq.removeListener(update);
+      }
+      window.removeEventListener("resize", update);
+      window.removeEventListener("orientationchange", update);
+      window.visualViewport?.removeEventListener("resize", update);
+    };
   }, []);
 
   const closeContent = () => {
@@ -180,8 +232,11 @@ export default function Hero() {
     if (openFrameRef.current) {
       window.cancelAnimationFrame(openFrameRef.current);
     }
+    if (isCompact) {
+      suppressBackdropUntilRef.current = window.performance.now() + 650;
+    }
 
-    if (event && typeof event.clientX === "number" && typeof event.clientY === "number") {
+    if (!isCompact && event && typeof event.clientX === "number" && typeof event.clientY === "number") {
       setTapOrigin({ x: event.clientX, y: event.clientY });
     } else {
       setTapOrigin(null);
@@ -191,7 +246,9 @@ export default function Hero() {
 
     setActive(anchor.id);
     setActiveSection(anchor.id);
-    triggerRipple(anchor);
+    if (!isCompact) {
+      triggerRipple(anchor);
+    }
 
     if (wasOpen) {
       setIsContentOpen(false);
@@ -204,6 +261,14 @@ export default function Hero() {
     } else {
       setIsContentOpen(true);
     }
+  };
+
+  const handleBackdropClick = () => {
+    if (isCompact && window.performance.now() < suppressBackdropUntilRef.current) {
+      return;
+    }
+
+    closeContent();
   };
 
   const handlePointerMove = (event) => {
@@ -221,7 +286,7 @@ export default function Hero() {
 
     let best = null;
     let bestDist = Infinity;
-    for (const anchor of NAV_ANCHORS) {
+    for (const anchor of layoutAnchors) {
       const d = Math.hypot(local.x - anchor.x, local.y - anchor.y);
       if (d < PROXIMITY_BAND && d < bestDist) {
         best = anchor.id;
@@ -277,6 +342,7 @@ export default function Hero() {
           overflow: hidden;
           color: #f3f2eb;
           touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
         }
 
         /* Soft vertical center line + repeating vertical guides, drifting */
@@ -915,6 +981,9 @@ export default function Hero() {
 
         .tvm-hero[data-compact="true"] .tvm-numeral {
           font-size: 56px;
+          transition:
+            fill 0.18s ease,
+            filter 0.18s ease;
         }
 
         .tvm-hero[data-compact="true"] {
@@ -946,10 +1015,18 @@ export default function Hero() {
           display: none;
         }
 
+        .tvm-hero[data-compact="true"] .tvm-ripple {
+          display: none;
+        }
+
+        .tvm-hero[data-compact="true"] .tvm-numeral-group[data-active="true"] .tvm-numeral {
+          filter: drop-shadow(0 0 8px rgba(243, 242, 235, 0.38));
+        }
+
         .tvm-hero[data-compact="true"] .tvm-orbit-group {
           transition:
-            opacity 0.45s ease,
-            transform 0.45s ease;
+            opacity 0.22s ease,
+            transform 0.22s ease;
         }
 
         .tvm-hero[data-compact="true"][data-panel-open="true"] .tvm-svg {
@@ -962,15 +1039,28 @@ export default function Hero() {
         }
 
         .tvm-hero[data-compact="true"] .tvm-content-shell::before {
+          background: rgba(0,0,0,0.9);
+          clip-path: none;
           transition:
-            clip-path 0.85s cubic-bezier(0.16, 1, 0.3, 1),
-            opacity 0.5s ease;
+            opacity 0.28s ease;
+        }
+
+        .tvm-hero[data-compact="true"] .tvm-content-shell[data-open="true"]::before {
+          clip-path: none;
         }
 
         .tvm-hero[data-compact="true"] .tvm-content-panel {
           transition:
-            opacity 0.55s ease,
-            transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+            opacity 0.26s ease,
+            transform 0.32s ease;
+        }
+
+        .tvm-hero[data-compact="true"] .tvm-content-panel::before,
+        .tvm-hero[data-compact="true"] .tvm-content-panel::after,
+        .tvm-hero[data-compact="true"] .tvm-section-seal,
+        .tvm-hero[data-compact="true"] .tvm-panel-content > *,
+        .tvm-hero[data-compact="true"] .tvm-close {
+          transition-duration: 0.24s;
         }
 
         @media (hover: none) {
@@ -1042,9 +1132,9 @@ export default function Hero() {
       >
         <svg
           ref={svgRef}
-          viewBox={isCompact ? "320 90 960 720" : "0 0 1600 900"}
+          viewBox={isCompact ? "560 140 480 760" : "0 0 1600 900"}
           className="tvm-svg"
-          preserveAspectRatio={isCompact ? "xMidYMid meet" : "xMidYMid slice"}
+          preserveAspectRatio="xMidYMid slice"
           onPointerMove={handlePointerMove}
           onPointerLeave={handlePointerLeave}
           xmlns="http://www.w3.org/2000/svg"
@@ -1096,7 +1186,7 @@ export default function Hero() {
 
           {/* 4. Vertex orbits — proximity-driven concentric circles */}
           <g id="vertexOrbits" className="tvm-vertex-orbits">
-            {NAV_ANCHORS.map((anchor) => {
+            {layoutAnchors.map((anchor) => {
               const r = baseRadiusFor(anchor);
               const op = orbitOpacity(anchor.id);
               const scale = orbitScale(anchor.id);
@@ -1136,7 +1226,7 @@ export default function Hero() {
           {/* 5. Idle traces — slow rotating arcs around each anchor */}
           {!isCompact && (
             <g id="idleTraces" className="tvm-idle-traces">
-              {NAV_ANCHORS.map((anchor, i) => {
+              {layoutAnchors.map((anchor, i) => {
                 const r = baseRadiusFor(anchor);
                 const dur = 22 + i * 4;
                 return (
@@ -1201,7 +1291,7 @@ export default function Hero() {
           {/* 9. Apex lights at each triangle vertex */}
           <g id="apexLights" className="tvm-apex-lights">
             {triangleVertices.map((v, i) => {
-              const anchorId = NAV_ANCHORS[i].id;
+              const anchorId = layoutAnchors[i].id;
               return (
                 <g
                   key={`apex-${i}`}
@@ -1217,7 +1307,7 @@ export default function Hero() {
 
           {/* 11. Roman numerals — interactive nav */}
           <g id="romanNumerals" className="tvm-numerals tvm-serif">
-            {NAV_ANCHORS.map((anchor) => {
+            {layoutAnchors.map((anchor) => {
               const isActive = geometryActive === anchor.id;
               return (
                 <g
@@ -1228,6 +1318,12 @@ export default function Hero() {
                   tabIndex={isContentOpen ? -1 : 0}
                   aria-label={`Open ${anchor.title}`}
                   aria-pressed={isContentOpen && activeSection === anchor.id}
+                  onPointerUp={(event) => {
+                    if (!isCompact) return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    openContent(anchor, event);
+                  }}
                   onMouseEnter={() => {
                     if (!isContentOpen) setActive(anchor.id);
                   }}
@@ -1236,6 +1332,7 @@ export default function Hero() {
                   }}
                   onClick={(event) => {
                     event.stopPropagation();
+                    if (isCompact) return;
                     openContent(anchor, event);
                   }}
                   onKeyDown={(event) => {
@@ -1285,7 +1382,7 @@ export default function Hero() {
           className="tvm-content-shell"
           data-open={isContentOpen}
           aria-hidden={!isContentOpen}
-          onClick={closeContent}
+          onClick={handleBackdropClick}
         >
           {activeContent && (
             <section
