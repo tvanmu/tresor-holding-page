@@ -3,11 +3,11 @@ import react from "@vitejs/plugin-react";
 
 const contentSecurityPolicy = [
   "default-src 'self'",
-  "script-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self'",
-  "connect-src 'self'",
+  "connect-src 'self' vitals.vercel-analytics.com",
   "media-src 'self'",
   "object-src 'none'",
   "base-uri 'none'",

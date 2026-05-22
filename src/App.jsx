@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/react";
 import LatentGeometry from "./LatentGeometry.jsx";
 import LoadingVeil from "./LoadingVeil.jsx";
 
@@ -23,6 +24,7 @@ function App() {
 
       <p className="quarry-line">Still in the quarry.</p>
       <LoadingVeil />
+      <Analytics />
     </main>
   );
 }
