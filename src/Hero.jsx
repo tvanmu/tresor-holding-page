@@ -55,6 +55,12 @@ const TRIANGLE_VERTICES = [
   { x: 800,  y: 696 },
 ];
 
+const COMPACT_TRIANGLE_VERTICES = [
+  { x: 620, y: 280 },
+  { x: 980, y: 280 },
+  { x: 800, y: 672 },
+];
+
 const PROXIMITY_BAND = 110;
 const RIPPLE_LIFETIME = 2400;
 
@@ -99,10 +105,11 @@ export default function Hero() {
   const activeAnchor = NAV_ANCHORS.find((anchor) => anchor.id === activeSection);
   const activeContent = activeSection ? SECTION_CONTENT[activeSection] : null;
   const geometryActive = isContentOpen ? activeSection : active;
+  const triangleVertices = isCompact ? COMPACT_TRIANGLE_VERTICES : TRIANGLE_VERTICES;
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return undefined;
-    const mq = window.matchMedia("(max-width: 820px), (orientation: portrait) and (max-width: 960px)");
+    const mq = window.matchMedia("(max-width: 820px), (orientation: portrait) and (max-width: 960px), (pointer: coarse) and (max-width: 960px)");
     const update = () => setIsCompact(mq.matches);
     update();
     if (mq.addEventListener) {
@@ -910,6 +917,41 @@ export default function Hero() {
           font-size: 56px;
         }
 
+        .tvm-hero[data-compact="true"] {
+          height: 100svh;
+          min-height: 100svh;
+        }
+
+        .tvm-hero[data-compact="true"]::before,
+        .tvm-hero[data-compact="true"] .tvm-fan,
+        .tvm-hero[data-compact="true"] .tvm-orbit-dashed,
+        .tvm-hero[data-compact="true"] .tvm-flightpath,
+        .tvm-hero[data-compact="true"] .tvm-plane {
+          animation: none;
+        }
+
+        .tvm-hero[data-compact="true"]::before {
+          opacity: 0.2;
+        }
+
+        .tvm-hero[data-compact="true"] .tvm-fan {
+          opacity: 0.48;
+        }
+
+        .tvm-hero[data-compact="true"] .tvm-flightpath {
+          opacity: 0.16;
+        }
+
+        .tvm-hero[data-compact="true"] .tvm-plane {
+          display: none;
+        }
+
+        .tvm-hero[data-compact="true"] .tvm-orbit-group {
+          transition:
+            opacity 0.45s ease,
+            transform 0.45s ease;
+        }
+
         .tvm-hero[data-compact="true"][data-panel-open="true"] .tvm-svg {
           opacity: 0.32;
           filter: none;
@@ -1026,17 +1068,19 @@ export default function Hero() {
                 fill="#ece8de"
                 fillOpacity="0.32"
               />
-              <animateMotion
-                dur="24s"
-                begin="2.5s"
-                repeatCount="indefinite"
-                rotate="auto"
-                calcMode="linear"
-                keyTimes="0; 0.42; 1"
-                keyPoints="0; 1; 1"
-              >
-                <mpath href="#tvm-plane-path" />
-              </animateMotion>
+              {!isCompact && (
+                <animateMotion
+                  dur="24s"
+                  begin="2.5s"
+                  repeatCount="indefinite"
+                  rotate="auto"
+                  calcMode="linear"
+                  keyTimes="0; 0.42; 1"
+                  keyPoints="0; 1; 1"
+                >
+                  <mpath href="#tvm-plane-path" />
+                </animateMotion>
+              )}
             </g>
           </g>
 
@@ -1090,38 +1134,40 @@ export default function Hero() {
           </g>
 
           {/* 5. Idle traces — slow rotating arcs around each anchor */}
-          <g id="idleTraces" className="tvm-idle-traces">
-            {NAV_ANCHORS.map((anchor, i) => {
-              const r = baseRadiusFor(anchor);
-              const dur = 22 + i * 4;
-              return (
-                <g
-                  key={`trace-${anchor.id}`}
-                  className="tvm-idle-trace"
-                  style={{ opacity: idleOpacity(anchor.id) }}
-                >
-                  <circle
-                    cx={anchor.x}
-                    cy={anchor.y}
-                    r={r * 1.012}
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="0.8"
-                    strokeDasharray={`${r * 0.48} ${r * 6}`}
+          {!isCompact && (
+            <g id="idleTraces" className="tvm-idle-traces">
+              {NAV_ANCHORS.map((anchor, i) => {
+                const r = baseRadiusFor(anchor);
+                const dur = 22 + i * 4;
+                return (
+                  <g
+                    key={`trace-${anchor.id}`}
+                    className="tvm-idle-trace"
+                    style={{ opacity: idleOpacity(anchor.id) }}
                   >
-                    <animateTransform
-                      attributeName="transform"
-                      type="rotate"
-                      from={`${i * 90} ${anchor.x} ${anchor.y}`}
-                      to={`${i * 90 + 360} ${anchor.x} ${anchor.y}`}
-                      dur={`${dur}s`}
-                      repeatCount="indefinite"
-                    />
-                  </circle>
-                </g>
-              );
-            })}
-          </g>
+                    <circle
+                      cx={anchor.x}
+                      cy={anchor.y}
+                      r={r * 1.012}
+                      fill="none"
+                      stroke="white"
+                      strokeWidth="0.8"
+                      strokeDasharray={`${r * 0.48} ${r * 6}`}
+                    >
+                      <animateTransform
+                        attributeName="transform"
+                        type="rotate"
+                        from={`${i * 90} ${anchor.x} ${anchor.y}`}
+                        to={`${i * 90 + 360} ${anchor.x} ${anchor.y}`}
+                        dur={`${dur}s`}
+                        repeatCount="indefinite"
+                      />
+                    </circle>
+                  </g>
+                );
+              })}
+            </g>
+          )}
 
           {/* 7. Click ripples */}
           <g id="ripples">
@@ -1142,18 +1188,19 @@ export default function Hero() {
           {/* 8. Inverted equilateral triangle */}
           <g id="triangle" className="tvm-triangle">
             <polygon
-              points={TRIANGLE_VERTICES.map((v) => `${v.x},${v.y}`).join(" ")}
+              points={triangleVertices.map((v) => `${v.x},${v.y}`).join(" ")}
               fill="none"
               stroke="white"
               strokeWidth="1.5"
               strokeOpacity="0.85"
-              strokeLinejoin="miter"
+              strokeLinejoin={isCompact ? "round" : "miter"}
+              strokeLinecap={isCompact ? "round" : "butt"}
             />
           </g>
 
           {/* 9. Apex lights at each triangle vertex */}
           <g id="apexLights" className="tvm-apex-lights">
-            {TRIANGLE_VERTICES.map((v, i) => {
+            {triangleVertices.map((v, i) => {
               const anchorId = NAV_ANCHORS[i].id;
               return (
                 <g
