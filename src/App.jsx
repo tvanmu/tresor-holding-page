@@ -3,21 +3,21 @@ import { useEffect, useRef, useState } from "react";
 const NAV_ITEMS = [
   {
     id: "education",
-    label: "Education",
+    label: "I",
     positionClass: "pos-top-left",
     entryX: "-34px",
     entryY: "-28px",
   },
   {
     id: "projects",
-    label: "Projects",
+    label: "II",
     positionClass: "pos-top-right",
     entryX: "34px",
     entryY: "-28px",
   },
   {
     id: "contact",
-    label: "Contact",
+    label: "III",
     positionClass: "pos-bottom-mid",
     entryX: "0px",
     entryY: "34px",

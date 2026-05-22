@@ -383,7 +383,7 @@ canvas {
   }
 
   .center-core {
-    margin-top: -3vh;
+    margin-top: -5dvh;
   }
 
   .content-inner {
@@ -393,8 +393,8 @@ canvas {
   }
 
   .name {
-    font-size: clamp(2.35rem, 12vw, 3.4rem);
-    letter-spacing: 0.075em;
+    font-size: clamp(1.8rem, 8.2vw, 2.5rem);
+    letter-spacing: 0.025em;
   }
 
   .nav-link {
@@ -402,17 +402,18 @@ canvas {
   }
 
   .pos-top-left {
-    top: max(6dvh, calc(env(safe-area-inset-top) + 1.25rem));
-    left: max(4vw, env(safe-area-inset-left));
+    top: clamp(4.75rem, 9dvh, 6.75rem);
+    left: max(2vw, env(safe-area-inset-left));
   }
 
   .pos-top-right {
-    top: max(6dvh, calc(env(safe-area-inset-top) + 1.25rem));
-    right: max(4vw, env(safe-area-inset-right));
+    top: clamp(4.75rem, 9dvh, 6.75rem);
+    right: max(2vw, env(safe-area-inset-right));
   }
 
   .pos-bottom-mid {
-    bottom: max(6dvh, calc(env(safe-area-inset-bottom) + 1.25rem));
+    top: min(62dvh, 31rem);
+    bottom: auto;
   }
 
   .nav-item {
@@ -459,11 +460,11 @@ canvas {
   }
 
   .pos-top-left {
-    left: 5vw;
+    left: 2vw;
   }
 
   .pos-top-right {
-    right: 5vw;
+    right: 2vw;
   }
 }
 
@@ -478,11 +479,12 @@ canvas {
 
   .pos-top-left,
   .pos-top-right {
-    top: max(4dvh, calc(env(safe-area-inset-top) + 0.75rem));
+    top: clamp(3.5rem, 7dvh, 4.75rem);
   }
 
   .pos-bottom-mid {
-    bottom: max(4dvh, calc(env(safe-area-inset-bottom) + 0.75rem));
+    top: min(64dvh, 25.5rem);
+    bottom: auto;
   }
 }
 
