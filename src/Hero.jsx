@@ -49,10 +49,58 @@ const NAV_ANCHORS = [
   },
 ];
 
+const MOBILE_NAV_ANCHORS = [
+  {
+    id: "education",
+    label: "I",
+    title: "Education",
+    x: 650,
+    y: 250,
+    textY: 258,
+    position: "tl",
+    originX: "25vw",
+    originY: "31vh",
+    entryX: "-24px",
+    entryY: "-22px",
+  },
+  {
+    id: "projects",
+    label: "II",
+    title: "Projects",
+    x: 950,
+    y: 250,
+    textY: 258,
+    position: "tr",
+    originX: "75vw",
+    originY: "31vh",
+    entryX: "24px",
+    entryY: "-22px",
+  },
+  {
+    id: "contact",
+    label: "III",
+    title: "Contact",
+    x: 800,
+    y: 724,
+    textY: 732,
+    position: "b",
+    originX: "50vw",
+    originY: "78vh",
+    entryX: "0px",
+    entryY: "34px",
+  },
+];
+
 const TRIANGLE_VERTICES = [
   { x: 560,  y: 280 },
   { x: 1040, y: 280 },
   { x: 800,  y: 696 },
+];
+
+const MOBILE_TRIANGLE_VERTICES = [
+  { x: 650, y: 280 },
+  { x: 950, y: 280 },
+  { x: 800, y: 696 },
 ];
 
 const PROXIMITY_BAND = 110;
@@ -88,13 +136,16 @@ export default function Hero() {
   const [active, setActive] = useState(null);
   const [activeSection, setActiveSection] = useState(null);
   const [isContentOpen, setIsContentOpen] = useState(false);
+  const [isMobileLayout, setIsMobileLayout] = useState(false);
   const [ripples, setRipples] = useState([]);
   const svgRef = useRef(null);
   const closeTimerRef = useRef(null);
   const openFrameRef = useRef(null);
   const rippleIdRef = useRef(0);
 
-  const activeAnchor = NAV_ANCHORS.find((anchor) => anchor.id === activeSection);
+  const anchors = isMobileLayout ? MOBILE_NAV_ANCHORS : NAV_ANCHORS;
+  const triangleVertices = isMobileLayout ? MOBILE_TRIANGLE_VERTICES : TRIANGLE_VERTICES;
+  const activeAnchor = anchors.find((anchor) => anchor.id === activeSection);
   const activeContent = activeSection ? SECTION_CONTENT[activeSection] : null;
   const geometryActive = isContentOpen ? activeSection : active;
 
@@ -125,6 +176,16 @@ export default function Hero() {
         window.cancelAnimationFrame(openFrameRef.current);
       }
     };
+  }, []);
+
+  useEffect(() => {
+    const mobileQuery = window.matchMedia("(max-width: 700px), (pointer: coarse)");
+    const updateMobileLayout = () => setIsMobileLayout(mobileQuery.matches);
+
+    updateMobileLayout();
+    mobileQuery.addEventListener("change", updateMobileLayout);
+
+    return () => mobileQuery.removeEventListener("change", updateMobileLayout);
   }, []);
 
   useEffect(() => {
@@ -174,6 +235,7 @@ export default function Hero() {
 
   const handlePointerMove = (event) => {
     if (isContentOpen) return;
+    if (event.pointerType && event.pointerType !== "mouse") return;
 
     const svg = svgRef.current;
     if (!svg || typeof svg.getScreenCTM !== "function") return;
@@ -186,7 +248,7 @@ export default function Hero() {
 
     let best = null;
     let bestDist = Infinity;
-    for (const anchor of NAV_ANCHORS) {
+    for (const anchor of anchors) {
       const d = Math.hypot(local.x - anchor.x, local.y - anchor.y);
       if (d < PROXIMITY_BAND && d < bestDist) {
         best = anchor.id;
@@ -264,6 +326,7 @@ export default function Hero() {
           height: 100%;
           display: block;
           cursor: default;
+          touch-action: manipulation;
           z-index: 2;
           transition:
             opacity 1s ease,
@@ -844,7 +907,68 @@ export default function Hero() {
           outline-offset: 6px;
         }
 
-          @media (max-width: 700px) {
+        @media (max-width: 700px), (pointer: coarse) {
+          .tvm-hero {
+            height: 100svh;
+            min-height: 100svh;
+          }
+
+          .tvm-hero::before,
+          .tvm-fan,
+          .tvm-feather,
+          .tvm-orbit-dashed,
+          .tvm-arc-solid,
+          .tvm-plane,
+          .tvm-triangle,
+          .tvm-numerals,
+          .tvm-wordmark,
+          .tvm-vertex-orbits,
+          .tvm-apex-lights,
+          .tvm-center-cross {
+            animation: none;
+          }
+
+          .tvm-arc-solid {
+            stroke-dashoffset: 0;
+          }
+
+          .tvm-plane,
+          .tvm-triangle,
+          .tvm-numerals,
+          .tvm-wordmark,
+          .tvm-vertex-orbits,
+          .tvm-apex-lights,
+          .tvm-center-cross {
+            opacity: 1;
+          }
+
+          .tvm-fan {
+            opacity: 0.42;
+          }
+
+          .tvm-feather {
+            opacity: 0.48;
+          }
+
+          .tvm-idle-traces {
+            display: none;
+          }
+
+          .tvm-orbit-group {
+            transition:
+              opacity 0.45s ease,
+              transform 0.45s ease;
+          }
+
+          .tvm-numeral {
+            font-size: 31px;
+          }
+
+          .tvm-hero[data-panel-open="true"] .tvm-svg {
+            opacity: 0.36;
+            filter: none;
+          }
+
           .tvm-content-panel {
             width: min(90vw, 430px);
             min-height: min(58dvh, 440px);
@@ -909,6 +1033,7 @@ export default function Hero() {
         className="tvm-hero"
         data-active={geometryActive !== null}
         data-panel-open={isContentOpen}
+        data-mobile-layout={isMobileLayout}
         style={{
           "--panel-origin-x": activeAnchor?.originX ?? "50vw",
           "--panel-origin-y": activeAnchor?.originY ?? "50vh",
@@ -998,7 +1123,7 @@ export default function Hero() {
 
           {/* 4. Vertex orbits — proximity-driven concentric circles */}
           <g id="vertexOrbits" className="tvm-vertex-orbits">
-            {NAV_ANCHORS.map((anchor) => {
+            {anchors.map((anchor) => {
               const r = baseRadiusFor(anchor);
               const op = orbitOpacity(anchor.id);
               const scale = orbitScale(anchor.id);
@@ -1036,43 +1161,45 @@ export default function Hero() {
           </g>
 
           {/* 5. Idle traces — slow rotating arcs around each anchor */}
-          <g id="idleTraces" className="tvm-idle-traces">
-            {NAV_ANCHORS.map((anchor, i) => {
-              const r = baseRadiusFor(anchor);
-              const dur = 22 + i * 4;
-              return (
-                <g
-                  key={`trace-${anchor.id}`}
-                  className="tvm-idle-trace"
-                  style={{ opacity: idleOpacity(anchor.id) }}
-                >
-                  <circle
-                    cx={anchor.x}
-                    cy={anchor.y}
-                    r={r * 1.012}
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="0.8"
-                    strokeDasharray={`${r * 0.48} ${r * 6}`}
+          {!isMobileLayout && (
+            <g id="idleTraces" className="tvm-idle-traces">
+              {anchors.map((anchor, i) => {
+                const r = baseRadiusFor(anchor);
+                const dur = 22 + i * 4;
+                return (
+                  <g
+                    key={`trace-${anchor.id}`}
+                    className="tvm-idle-trace"
+                    style={{ opacity: idleOpacity(anchor.id) }}
                   >
-                    <animateTransform
-                      attributeName="transform"
-                      type="rotate"
-                      from={`${i * 90} ${anchor.x} ${anchor.y}`}
-                      to={`${i * 90 + 360} ${anchor.x} ${anchor.y}`}
-                      dur={`${dur}s`}
-                      repeatCount="indefinite"
-                    />
-                  </circle>
-                </g>
-              );
-            })}
-          </g>
+                    <circle
+                      cx={anchor.x}
+                      cy={anchor.y}
+                      r={r * 1.012}
+                      fill="none"
+                      stroke="white"
+                      strokeWidth="0.8"
+                      strokeDasharray={`${r * 0.48} ${r * 6}`}
+                    >
+                      <animateTransform
+                        attributeName="transform"
+                        type="rotate"
+                        from={`${i * 90} ${anchor.x} ${anchor.y}`}
+                        to={`${i * 90 + 360} ${anchor.x} ${anchor.y}`}
+                        dur={`${dur}s`}
+                        repeatCount="indefinite"
+                      />
+                    </circle>
+                  </g>
+                );
+              })}
+            </g>
+          )}
 
           {/* 6. Center crosshair + faint spokes to vertices */}
           <g id="centerCross" className="tvm-center-cross">
             <g stroke="white" fill="none" strokeOpacity="0.045" strokeWidth="0.8">
-              {NAV_ANCHORS.map((anchor) => (
+              {anchors.map((anchor) => (
                 <line
                   key={`spoke-${anchor.id}`}
                   x1={CENTER.x}
@@ -1106,7 +1233,7 @@ export default function Hero() {
           {/* 8. Inverted equilateral triangle */}
           <g id="triangle" className="tvm-triangle">
             <polygon
-              points={TRIANGLE_VERTICES.map((v) => `${v.x},${v.y}`).join(" ")}
+              points={triangleVertices.map((v) => `${v.x},${v.y}`).join(" ")}
               fill="none"
               stroke="white"
               strokeWidth="1.5"
@@ -1117,8 +1244,8 @@ export default function Hero() {
 
           {/* 9. Apex lights at each triangle vertex */}
           <g id="apexLights" className="tvm-apex-lights">
-            {TRIANGLE_VERTICES.map((v, i) => {
-              const anchorId = NAV_ANCHORS[i].id;
+            {triangleVertices.map((v, i) => {
+              const anchorId = anchors[i].id;
               return (
                 <g
                   key={`apex-${i}`}
@@ -1148,7 +1275,7 @@ export default function Hero() {
 
           {/* 11. Roman numerals — interactive nav */}
           <g id="romanNumerals" className="tvm-numerals tvm-serif">
-            {NAV_ANCHORS.map((anchor) => {
+            {anchors.map((anchor) => {
               const isActive = geometryActive === anchor.id;
               return (
                 <g
@@ -1181,7 +1308,7 @@ export default function Hero() {
                     className="tvm-numeral-hit"
                     cx={anchor.x}
                     cy={anchor.y}
-                    r="34"
+                    r={isMobileLayout ? "50" : "34"}
                   />
                   <text
                     className="tvm-numeral tvm-serif"
