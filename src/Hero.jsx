@@ -52,7 +52,7 @@ const NAV_ANCHORS = [
 const COMPACT_NAV_ANCHORS = [
   {
     ...NAV_ANCHORS[0],
-    x: 644,
+    x: 640,
     y: 256,
     textY: 264,
     originX: "24vw",
@@ -60,7 +60,7 @@ const COMPACT_NAV_ANCHORS = [
   },
   {
     ...NAV_ANCHORS[1],
-    x: 956,
+    x: 958,
     y: 256,
     textY: 264,
     originX: "76vw",
@@ -981,7 +981,6 @@ export default function Hero() {
 
         .tvm-hero[data-compact="true"] .tvm-numeral {
           font-size: 56px;
-          font-style: normal;
           transition:
             fill 0.18s ease,
             filter 0.18s ease;
