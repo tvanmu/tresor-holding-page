@@ -1379,7 +1379,7 @@ export default function Hero() {
               y="456"
               textAnchor="middle"
               fill="#ece8de"
-              fontSize="15"
+              fontSize={isCompact ? "22" : "15"}
               fontWeight="400"
               style={{ letterSpacing: "0.32em" }}
             >
