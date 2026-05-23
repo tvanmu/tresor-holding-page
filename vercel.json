@@ -1,0 +1,49 @@
+{
+  "rewrites": [
+    {
+      "source": "/weareback.png",
+      "destination": "/api/gone"
+    },
+    {
+      "source": "/weareback",
+      "destination": "/api/gone"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noimageindex, nosnippet, max-image-preview:none"
+        }
+      ]
+    },
+    {
+      "source": "/weareback.png",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noimageindex, nosnippet, max-image-preview:none"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/weareback",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noimageindex, nosnippet, max-image-preview:none"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    }
+  ]
+}
