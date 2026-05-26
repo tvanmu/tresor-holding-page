@@ -115,6 +115,9 @@ export default function Hero() {
   const [openSection, setOpenSection]       = useState(null);
   const [origin, setOrigin]                 = useState({ x: 0, y: 0 });
   const [easterActive, setEasterActive]     = useState(false);
+  // Ripple: a transient wave of brightness propagating from the click point
+  // through the dots of the clicked constellation. {section: null} means idle.
+  const [ripple, setRipple]                 = useState({ section: null, x: 0, y: 0, key: 0 });
 
   const svgRef    = useRef(null);
   const spiralRef = useRef(null);
@@ -204,6 +207,18 @@ export default function Hero() {
     return () => clearTimeout(t);
   }, [easterActive]);
 
+  // Ripple — after a section is clicked, the wave reaches the farthest dot
+  // within ~0.6s, plus the ~0.5s per-dot pulse animation. Clear at 1.15s.
+  // Re-keyed each trigger so rapid re-clicks reset cleanly.
+  useEffect(() => {
+    if (!ripple.section) return undefined;
+    const t = setTimeout(
+      () => setRipple({ section: null, x: 0, y: 0, key: ripple.key }),
+      1150,
+    );
+    return () => clearTimeout(t);
+  }, [ripple.key, ripple.section]);
+
   // Draw the spiral: inner end first, unfurling outward
   useEffect(() => {
     const spiral = spiralRef.current;
@@ -263,13 +278,63 @@ export default function Hero() {
     setOpenSection(null);
   }
 
-  // Shared handler set for any element that opens a section
+  // Convert a viewport click point to SVG user coords and fire a ripple
+  // through the matching constellation. Falls back to the constellation
+  // centre if anything goes wrong with the matrix transform (e.g. keyboard
+  // activation via Enter / Space, where there's no clientX/Y).
+  function triggerRipple(section, clientX, clientY) {
+    const svg = svgRef.current;
+    let x, y;
+    if (
+      svg &&
+      typeof svg.createSVGPoint === "function" &&
+      typeof svg.getScreenCTM === "function" &&
+      Number.isFinite(clientX) &&
+      Number.isFinite(clientY)
+    ) {
+      const ctm = svg.getScreenCTM();
+      if (ctm) {
+        const pt = svg.createSVGPoint();
+        pt.x = clientX;
+        pt.y = clientY;
+        const local = pt.matrixTransform(ctm.inverse());
+        x = local.x;
+        y = local.y;
+      }
+    }
+    if (x === undefined) {
+      // fallback — wave from constellation centre
+      const sq = PHYLLOTAXIS_SQUARES.find((s) => s.id === section);
+      x = sq ? sq.cx : 275;
+      y = sq ? sq.cy : 580;
+    }
+    setRipple((r) => ({ section, x, y, key: r.key + 1 }));
+  }
+
+  // Shared handler set for any element that opens a section.
+  // The panel open is intentionally delayed ~240ms after the ripple fires
+  // so the wave is visible BEFORE the stage starts dimming for the reveal.
+  // (Total perceived response: ~240ms wave + 1.18s radial reveal.)
   const sectionHandlers = (section) => ({
-    onClick: (e) => { e.preventDefault(); e.stopPropagation(); openPanel(section); },
+    onClick: (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (section !== "micro") {
+        triggerRipple(section, e.clientX, e.clientY);
+        setTimeout(() => openPanel(section), 240);
+      } else {
+        openPanel(section);
+      }
+    },
     onKeyDown: (e) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        openPanel(section);
+        if (section !== "micro") {
+          triggerRipple(section, NaN, NaN);
+          setTimeout(() => openPanel(section), 240);
+        } else {
+          openPanel(section);
+        }
       }
     },
     onMouseEnter: () => setHoveredSection(section),
@@ -519,11 +584,11 @@ export default function Hero() {
         }
 
         /* DOT CONSTELLATIONS — five nested transform layers, each owning ONE
-           transform concern, so the slow drift, the orbit, the hover-morph,
+           transform concern, so the slow drift, the per-dot active motion,
            and the mouse parallax never fight for the same property. From
            outside in:
              1. tvm-dots-parallax   translate, driven by mouse via CSS var
-             2. tvm-dots-active     scale+rotate on hover (transform-origin = cx,cy)
+             2. tvm-dots-active     reserved active layer; no group rotation
              3. tvm-dots-drift      sub-pixel slow drift on alternate loop
              4. tvm-dots-orbit      continuous slow rotation (decor only)
              5. tvm-dots            opacity, entrance fade, glow filter
@@ -538,15 +603,10 @@ export default function Hero() {
           );
         }
 
-        /* hover/open morph — constellation expands and tilts toward the user.
-           Inline transform-origin is set per-constellation to its cx,cy in
-           SVG user units so the rotation pivots on the cluster's center. */
-        .tvm-dots-active {
-          transition: transform 0.7s var(--tvm-ease-overshoot);
-        }
-        .tvm-dots-parallax[data-active="true"] .tvm-dots-active {
-          transform: scale(1.06) rotate(6deg);
-        }
+        /* active layer — intentionally does not transform the whole group.
+           The response now happens on each circle below, so the constellation
+           reads as many individual stars instead of one rotating sheet. */
+        .tvm-dots-active { transform: none; }
 
         /* slow drift — kept from prior pass, now isolated to its own layer */
         .tvm-stage[data-built="true"] .tvm-dots-drift[data-square="projects"]  { animation: tvm-dots-drift-1 22s ease-in-out -8s  infinite alternate; }
@@ -588,13 +648,56 @@ export default function Hero() {
           to   { opacity: 0.45; }
         }
 
-        /* per-star pulse — one keyframe, delay set inline per circle */
+        /* per-star pulse — one keyframe, delay set inline per circle via
+           --tvm-tw-d. transform-box=fill-box puts each circle's transform
+           origin at its own centre so the ripple's scale grows the dot
+           in place rather than displacing it across the canvas. */
         .tvm-dots circle {
+          transform-box: fill-box;
+          transform-origin: center;
           animation: tvm-dot-twinkle 6.2s ease-in-out infinite;
+          animation-delay: var(--tvm-tw-d, 0s);
         }
         @keyframes tvm-dot-twinkle {
           0%, 100% { opacity: 0.5;  }
           50%      { opacity: 0.95; }
+        }
+
+        .tvm-dots-parallax[data-active="true"] .tvm-dots[data-rippling="false"] circle {
+          animation:
+            tvm-dot-twinkle 6.2s ease-in-out infinite,
+            tvm-dot-individual-turn 0.9s var(--tvm-ease-overshoot) 1 both;
+          animation-delay:
+            var(--tvm-tw-d, 0s),
+            var(--tvm-ind-d, 0s);
+        }
+        @keyframes tvm-dot-individual-turn {
+          0%, 100% {
+            transform: rotate(var(--tvm-ind-a, 0deg)) translate(0) scale(1);
+          }
+          42% {
+            transform: rotate(calc(var(--tvm-ind-a, 0deg) + 150deg)) translate(var(--tvm-ind-r, 1px)) scale(1.22);
+          }
+          72% {
+            transform: rotate(calc(var(--tvm-ind-a, 0deg) + 285deg)) translate(var(--tvm-ind-r-soft, 0.55px)) scale(1.08);
+          }
+        }
+
+        /* ripple — a transient wave of brightness propagating outward from
+           the click point through the dots. Each dot's delay is computed
+           per-render in JS (distance / wave-speed) and written to --tvm-rp-d.
+           fill-mode: both keeps dots that haven't been reached AND dots that
+           have finished pinned at the 0%/100% keyframe value, so the wave is
+           the only visible motion against an otherwise-steady active field.
+           After ~1.15s React clears the state, twinkle resumes. */
+        .tvm-dots[data-rippling="true"] circle {
+          animation: tvm-dot-ripple 0.55s cubic-bezier(0.16, 1, 0.3, 1) 1 both;
+          animation-delay: var(--tvm-rp-d, 0s);
+        }
+        @keyframes tvm-dot-ripple {
+          0%   { opacity: 0.85; transform: scale(1);   }
+          28%  { opacity: 1;    transform: scale(1.7); }
+          100% { opacity: 0.85; transform: scale(1);   }
         }
 
         /* ============================================================
@@ -1039,18 +1142,45 @@ export default function Hero() {
                   parallax, hover-morph, slow drift, and orbit never collide.
                   See the CSS block "DOT CONSTELLATIONS" for the layer map. */}
               {squares.map((sq) => {
+                const isRippling = ripple.section === sq.id;
                 const dotsBody = (
-                  <g className="tvm-dots" data-square={sq.id} filter="url(#tvm-dot-glow)">
-                    {sq.dots.map((d, i) => (
-                      <circle
-                        key={i}
-                        cx={d.cx}
-                        cy={d.cy}
-                        r={d.r}
-                        fill={d.fill}
-                        style={{ animationDelay: `${d.delay}s` }}
-                      />
-                    ))}
+                  <g
+                    className="tvm-dots"
+                    data-square={sq.id}
+                    data-rippling={isRippling ? "true" : "false"}
+                    filter="url(#tvm-dot-glow)"
+                  >
+                    {sq.dots.map((d, i) => {
+                      // ripple delay = distance(click → dot) / wave_speed,
+                      // capped at 0.6s so even an edge-click on the big
+                      // constellation can't strand a dot past the timer.
+                      let rippleDelay = 0;
+                      if (isRippling) {
+                        const dx = d.cx - ripple.x;
+                        const dy = d.cy - ripple.y;
+                        // 850 SVG units/sec sweeps a 200-radius cluster in
+                        // ~235ms — fast enough to feel like one gesture, slow
+                        // enough that the wave is actually visible.
+                        rippleDelay = Math.min(Math.hypot(dx, dy) / 850, 0.45);
+                      }
+                      return (
+                        <circle
+                          key={i}
+                          cx={d.cx}
+                          cy={d.cy}
+                          r={d.r}
+                          fill={d.fill}
+                          style={{
+                            "--tvm-tw-d": `${d.delay}s`,
+                            "--tvm-rp-d": `${rippleDelay.toFixed(3)}s`,
+                            "--tvm-ind-a": `${((i * 137.5) % 360).toFixed(1)}deg`,
+                            "--tvm-ind-d": `${((i % 13) * 0.014).toFixed(3)}s`,
+                            "--tvm-ind-r": `${(0.7 + (i % 5) * 0.14).toFixed(2)}px`,
+                            "--tvm-ind-r-soft": `${(0.38 + (i % 5) * 0.08).toFixed(2)}px`,
+                          }}
+                        />
+                      );
+                    })}
                   </g>
                 );
                 const driftLayer = (
